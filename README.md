@@ -26,6 +26,7 @@ myChart
 | Method                  | Description                                                                                   |
 |-------------------------|-----------------------------------------------------------------------------------------------|
 | data([array])           | Getter/setter for chart data (see below for syntax details).                                  |
+| category([string])      | Getter/setter for categories on the y-axis.
 | width([number])         | Getter/setter for the chart width in px.                                                      |
 | maxHeight([number])     | Getter/setter for the chart's maximum height in px.                                           |
 | maxLineHeight([number]) | Getter/setter for the maximum height of each line, in px.                                     |
