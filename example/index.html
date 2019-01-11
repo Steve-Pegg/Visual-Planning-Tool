@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: black;
+        }
+
+        .line {
+            fill: none;
+            stroke: red;
+            stroke-width: 2px;
+        }
+
+        .tick text {
+            font-size: 12px;
+        }
+
+        .tick line {
+            opacity: 0.2;
+            stroke-dasharray: 5 5;
+        }
+
+
+
+        .axises {
+            .x-axis;
+
+        {
+            font: 12px sans-serif;
+        }
+
+        .x-grid line {
+            stroke: #D3D3D3;
+        }
+
+        .y-axis, .grp-axis {
+            line, path;
+
+        {
+            stroke: none;
+        }
+
+        text {
+            fill: #2F4F4F;
+        }
+
+        }
+        }
+
+        .series-group {
+            fill-opacity: 0.6;
+            stroke: #808080;
+            stroke-opacity: 0.2;
+        }
+
+        .series-segment {
+            stroke: none;
+        }
+
+        .series-group, .series-segment {
+            cursor: pointer;
+        }
+
+        .legend {
+            font-family: Sans-Serif;
+            .legendText;
+
+        {
+            fill: #666;
+        }
+
+        }
+
+        .reset-zoom-btn {
+            font-family: sans-serif;
+            fill: blue;
+            opacity: .6;
+            cursor: pointer;
+        }
+
+        }
+
+        .brusher {
+            .grid-background;
+
+        {
+            fill: lightgrey;
+        }
+
+        .axis path {
+            display: none;
+        }
+
+        .tick text {
+            text-anchor: middle;
+        }
+
+        .grid {
+            line, path;
+
+        {
+            stroke: #fff;
+        }
+
+        }
+        }
+
+        .chart-zoom-selection, .brusher .brush .selection {
+            stroke: blue;
+            stroke-opacity: 0.6;
+            fill: blue;
+            fill-opacity: 0.3;
+            shape-rendering: crispEdges;
+        }
+
+        .chart-tooltip {
+            color: #eee;
+            background: rgba(0,0,140,0.85);
+            padding: 5px;
+            border-radius: 3px;
+            font: 11px sans-serif;
+            z-index: 4000;
+            &.group-tooltip;
+
+        {
+            font-size: 14px;
+        }
+
+        &.line-tooltip {
+            font-size: 13px;
+        }
+
+        &.group-tooltip, &.line-tooltip {
+            font-weight: bold;
+        }
+
+        &.segment-tooltip {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>   
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="../src/dateform.js"></script>
+<script src="../src/pegChart.js"></script>
+
+
+    <div id="savebtn"></div>
+    <div id="myPlot"></div>
+    
+    <script>
+        var myData = [
+                          { group: "group1", label: "label1", start: "2018-09-01", finish: "2018-10-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group1", label: "label2", start: "2018-07-01", finish: "2018-08-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group1", label: "label3", start: "2018-01-01", finish: "2018-02-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group1", label: "label4", start: "2018-04-01", finish: "2018-06-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group1", label: "label5", start: "2018-11-01", finish: "2018-12-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group2", label: "label6", start: "2018-01-01", finish: "2018-02-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group2", label: "label7", start: "2018-03-27", finish: "2018-04-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group2", label: "label8", start: "2018-05-01", finish: "2018-07-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group2", label: "label9", start: "2018-09-01", finish: "2018-10-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group2", label: "label10", start: "2018-11-01", finish: "2018-12-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group2", label: "label11", start: "2018-06-01", finish: "2018-07-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group3", label: "label12", start: "2018-08-01", finish: "2018-09-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group3", label: "label13", start: "2018-10-01", finish: "2018-11-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group3", label: "label14", start: "2018-07-01", finish: "2018-08-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group3", label: "label15", start: "2018-02-01", finish: "2018-04-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group3", label: "label16", start: "2018-10-01", finish: "2019-01-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group3", label: "label17", start: "2019-03-01", finish: "2019-05-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group4", label: "label1", start: "2018-09-01", finish: "2018-10-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group4", label: "label2", start: "2018-07-01", finish: "2018-08-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group4", label: "label3", start: "2018-01-01", finish: "2018-02-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group4", label: "label4", start: "2018-04-01", finish: "2018-06-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group4", label: "label5", start: "2018-11-01", finish: "2018-12-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group5", label: "label6", start: "2018-01-01", finish: "2018-02-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group5", label: "label7", start: "2018-03-27", finish: "2018-04-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group5", label: "label8", start: "2018-05-01", finish: "2018-07-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group5", label: "label9", start: "2018-09-01", finish: "2018-10-01",  description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group5", label: "label10", start: "2018-11-01", finish: "2018-12-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group5", label: "label11", start: "2018-06-01", finish: "2018-07-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group6", label: "label12", start: "2018-08-01", finish: "2018-09-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group6", label: "label13", start: "2018-10-01", finish: "2018-11-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group6", label: "label14", start: "2018-07-01", finish: "2018-08-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group6", label: "label15", start: "2018-02-01", finish: "2018-04-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group6", label: "label16", start: "2018-10-01", finish: "2019-01-01", description: "Lorem Ipsum",myCategory:"" },
+                          { group: "group6", label: "label17", start: "2019-03-01", finish: "2019-05-01", }];
+
+
+
+        myPlot = pegChart()
+               .category("label")
+               .leftMargin(50)               
+               .width(1500);
+        
+        document.addEventListener("DOMContentLoaded", function () {
+            myPlot(document.getElementById("myPlot"), myData);
+           
+        });
+    </script>
+
+    
+   
+</body>

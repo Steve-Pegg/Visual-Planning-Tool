@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: black;
+        }
+
+        .line {
+            fill: none;
+            stroke: red;
+            stroke-width: 2px;
+        }
+
+        .tick text {
+            font-size: 12px;
+        }
+
+        .tick line {
+            opacity: 0.2;
+            stroke-dasharray: 5 5;
+        }
+
+
+
+        .axises {
+            .x-axis;
+
+        {
+            font: 12px sans-serif;
+        }
+
+        .x-grid line {
+            stroke: #D3D3D3;
+        }
+
+        .y-axis, .grp-axis {
+            line, path;
+
+        {
+            stroke: none;
+        }
+
+        text {
+            fill: #2F4F4F;
+        }
+
+        }
+        }
+
+        .series-group {
+            fill-opacity: 0.6;
+            stroke: #808080;
+            stroke-opacity: 0.2;
+        }
+
+        .series-segment {
+            stroke: none;
+        }
+
+        .series-group, .series-segment {
+            cursor: pointer;
+        }
+
+        .legend {
+            font-family: Sans-Serif;
+            .legendText;
+
+        {
+            fill: #666;
+        }
+
+        }
+
+        .reset-zoom-btn {
+            font-family: sans-serif;
+            fill: blue;
+            opacity: .6;
+            cursor: pointer;
+        }
+
+        }
+
+        .brusher {
+            .grid-background;
+
+        {
+            fill: lightgrey;
+        }
+
+        .axis path {
+            display: none;
+        }
+
+        .tick text {
+            text-anchor: middle;
+        }
+
+        .grid {
+            line, path;
+
+        {
+            stroke: #fff;
+        }
+
+        }
+        }
+
+        .chart-zoom-selection, .brusher .brush .selection {
+            stroke: blue;
+            stroke-opacity: 0.6;
+            fill: blue;
+            fill-opacity: 0.3;
+            shape-rendering: crispEdges;
+        }
+
+        .chart-tooltip {
+            color: #eee;
+            background: rgba(0,0,140,0.85);
+            padding: 5px;
+            border-radius: 3px;
+            font: 11px sans-serif;
+            z-index: 4000;
+            &.group-tooltip;
+
+        {
+            font-size: 14px;
+        }
+
+        &.line-tooltip {
+            font-size: 13px;
+        }
+
+        &.group-tooltip, &.line-tooltip {
+            font-weight: bold;
+        }
+
+        &.segment-tooltip {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>   
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="rndata.js"></script> 
+<script src="../src/dateform.js"></script>
+<script src="../src/pegChart.js"></script>
+
+
+    <div id="savebtn"></div>
+    <div id="myPlot"></div>
+
+    <script>
+        var myData = getRandomData(),
+			myPlot = pegChart()               
+               .leftMargin(50)               
+               .width(1500);
+        
+        document.addEventListener("DOMContentLoaded", function () {
+            myPlot(document.getElementById("myPlot"), myData);
+           
+        });
+    </script>
+
+    
+   
+</body>
