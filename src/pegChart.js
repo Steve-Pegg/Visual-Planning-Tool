@@ -20,7 +20,8 @@ var timelines = function() {
                 start: dateFormat(env.structData[t].start, "yyyy-mm-dd"),
                 finish: dateFormat(env.structData[t].finish, "yyyy-mm-dd"),
                 group: env.structData[t].group,
-                label: env.structData[t].label
+                label: env.structData[t].label,
+                description: env.structData[t].description
             })
         }
        
@@ -33,7 +34,7 @@ var timelines = function() {
     function convertdata() {
         for (var t = 0; t < env.structData.length; t++) {
             env.structData[t].start = new Date(env.structData[t].start)
-            env.structData[t].finish = new Date(env.structData[t].start.getTime() + ((Math.floor(Math.random() * 100) + 10) * 24 * 60 * 60 * 1000))
+            env.structData[t].finish = new Date(env.structData[t].finish)
             env.structData[t].clas = "x" + (t + 1)
         }
     }
@@ -179,8 +180,30 @@ var timelines = function() {
         for (var i = 0; i < env.structData.length; i++) {
             if ("clasl " + env.structData[i].clas === clas) {
                 env.structData[i].start = xt.invert(d3.event.x);
+                var sub = env.structData[i].sub
             }
         };
+
+        //
+        var subitems = env.structData.filter(function (d) { return d.sub === sub; });
+        if (subitems.length > 1) {
+            var i, line, count = false, lines = [];
+            subitems.forEach(function (item) {
+                for (i = 0, line = 0; i < lines.length; i++, line++) {
+                    if (item.finish <= lines[i]) {
+                        count = true
+                        break;
+                    }
+                }
+                lines[line] = item.start;
+            })
+        }
+        if (count) { resolveOverlaps(); }
+
+        labels = getlabels()
+        env.nLines = getLines();
+        env.graphH = d3.min([env.nLines * env.maxLineHeight, env.maxHeight - env.margin.top - env.margin.bottom]);
+        renderAxises()
         d3.event = null
         draw();
     }
@@ -220,8 +243,30 @@ var timelines = function() {
         for (var i = 0; i < env.structData.length; i++) {
             if ("clasr " + env.structData[i].clas === clas) {
                 env.structData[i].finish = xt.invert(d3.event.x);
+                var sub = env.structData[i].sub
             }
         };
+
+        //
+        var subitems = env.structData.filter(function (d) { return d.sub === sub; });
+        if (subitems.length > 1) {
+            var i, line, count = false, lines = [];
+            subitems.forEach(function (item) {
+                for (i = 0, line = 0; i < lines.length; i++, line++) {
+                    if (item.finish <= lines[i]) {
+                        count = true
+                        break;
+                    }
+                }
+                lines[line] = item.start;
+            })
+        }
+        if (count) { resolveOverlaps(); }
+
+        labels = getlabels()
+        env.nLines = getLines();
+        env.graphH = d3.min([env.nLines * env.maxLineHeight, env.maxHeight - env.margin.top - env.margin.bottom]);
+        renderAxises()
         d3.event = null
         draw();
     }
