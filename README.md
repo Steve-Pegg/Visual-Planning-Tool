@@ -1,4 +1,4 @@
-# Visual-Planning-Tool
+# Visual Planning Tool
 An interactive 'Gantt-like' chart for visualising project and portfolio information. 
 ![github1](https://user-images.githubusercontent.com/45569000/51021089-7124b280-1578-11e9-85eb-857bb31b560d.JPG)
 
@@ -44,6 +44,7 @@ myChart
     description: "bar text",
     start: "2019-01-01",  //yyyy-mm-dd
     finish: "2020-01-01" //yyyy-mm-dd
+    description: "your text"
   }
 ]
 ```
