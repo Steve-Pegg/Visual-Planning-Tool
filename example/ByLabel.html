@@ -161,14 +161,7 @@
         //use random data
 
         var myData = getRandomData();
-
-        for (var t = 0; t < myData.length; t++) {
-            myData[t].start = new Date(myData[t].start)
-            myData[t].finish = new Date(myData[t].start.getTime() + ((Math.floor(Math.random() * 100) + 10) * 24 * 60 * 60 * 1000))
-            myData[t].start = dateFormat(myData[t].start, "yyyy-mm-dd")
-            myData[t].finish  = dateFormat(myData[t].finish, "yyyy-mm-dd")
-        }
-
+      
 			var myPlot = pegChart()
                .category("label")
                .leftMargin(50)               
@@ -178,6 +171,8 @@
             myPlot(document.getElementById("myPlot"), myData);
            
         });
+
+        
     </script>
 
     

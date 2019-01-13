@@ -73,7 +73,7 @@ var timelines = function() {
     }
 
    
-    function resolveOverlaps() {
+    function resolveOverlaps() {      
         env.flatData = []      
         var keys = env.structData.map(function (d) { return d[env.category]; })
                     .reduce(function (p, v) { return p.indexOf(v) == -1 ? p.concat(v) : p; }, [])
@@ -106,7 +106,8 @@ var timelines = function() {
 
             env.flatData.sort(function (a, b) {
                 return d3.ascending(a.category, b.category);
-           });
+            });
+        console.log(env.structData)
     }
     //<General functions/>  
 
@@ -186,11 +187,15 @@ var timelines = function() {
 
         //
         var subitems = env.structData.filter(function (d) { return d.sub === sub; });
+          subitems.sort(function (a, b) {
+             return d3.descending(a.start, b.start);
+          });
+          
         if (subitems.length > 1) {
             var i, line, count = false, lines = [];
             subitems.forEach(function (item) {
                 for (i = 0, line = 0; i < lines.length; i++, line++) {
-                    if (item.finish <= lines[i]) {
+                    if (item.finish >= lines[i]) {
                         count = true
                         break;
                     }
@@ -249,11 +254,14 @@ var timelines = function() {
 
         //
         var subitems = env.structData.filter(function (d) { return d.sub === sub; });
+        subitems.sort(function (a, b) {
+            return d3.descending(a.start, b.start);
+        });
         if (subitems.length > 1) {
             var i, line, count = false, lines = [];
             subitems.forEach(function (item) {
                 for (i = 0, line = 0; i < lines.length; i++, line++) {
-                    if (item.finish <= lines[i]) {
+                    if (item.finish >= lines[i]) {
                         count = true
                         break;
                     }
