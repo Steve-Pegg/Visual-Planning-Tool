@@ -2,6 +2,27 @@
 <html>
 <head>
     <style>
+    .btn-group button {
+  display:block;
+  cursor: pointer; /* Pointer/hand icon */
+  float: left; /* Float the buttons side by side */
+}
+
+/* Clear floats (clearfix hack) */
+.btn-group:after {
+  content: "";
+  clear: both;
+  display: block;
+}
+
+.btn-group button:not(:last-child) {
+  border-right: none; /* Prevent double borders */
+}
+
+/* Add a background color on hover */
+.btn-group button:hover {
+  background-color: #3e8e41;
+}
         .axis path,
         .axis line {
             fill: none;
@@ -22,13 +43,8 @@
             opacity: 0.2;
             stroke-dasharray: 5 5;
         }
-
-
-
-        .axises {
-            .x-axis;
-
-        {
+      
+        .x-axis  {
             font: 12px sans-serif;
         }
 
@@ -38,16 +54,10 @@
 
         .y-axis, .grp-axis {
             line, path;
-
-        {
-            stroke: none;
         }
-
+      
         text {
             fill: #2F4F4F;
-        }
-
-        }
         }
 
         .series-group {
@@ -66,80 +76,9 @@
 
         .legend {
             font-family: Sans-Serif;
-            .legendText;
-
-        {
-            fill: #666;
         }
-
-        }
-
-        .reset-zoom-btn {
-            font-family: sans-serif;
-            fill: blue;
-            opacity: .6;
-            cursor: pointer;
-        }
-
-        }
-
-        .brusher {
-            .grid-background;
-
-        {
-            fill: lightgrey;
-        }
-
-        .axis path {
-            display: none;
-        }
-
-        .tick text {
-            text-anchor: middle;
-        }
-
-        .grid {
-            line, path;
-
-        {
-            stroke: #fff;
-        }
-
-        }
-        }
-
-        .chart-zoom-selection, .brusher .brush .selection {
-            stroke: blue;
-            stroke-opacity: 0.6;
-            fill: blue;
-            fill-opacity: 0.3;
-            shape-rendering: crispEdges;
-        }
-
-        .chart-tooltip {
-            color: #eee;
-            background: rgba(0,0,140,0.85);
-            padding: 5px;
-            border-radius: 3px;
-            font: 11px sans-serif;
-            z-index: 4000;
-            &.group-tooltip;
-
-        {
-            font-size: 14px;
-        }
-
-        &.line-tooltip {
-            font-size: 13px;
-        }
-
-        &.group-tooltip, &.line-tooltip {
-            font-weight: bold;
-        }
-
-        &.segment-tooltip {
-            text-align: center;
-        }
+           
+       
     </style>
 </head>
 <body>
@@ -151,15 +90,21 @@
 <script src="../src/pegChart.js"></script>
 
 
-    <div id="savebtn"></div>
+    <div class="btn-group">
+        <div id="emptybtn"></div>
+        <div id="deletebtn"></div>
+        <div id="newbtn"></div>
+        <div id="savebtn"></div>
+    </div>
+
     <div id="myPlot"></div>
 
     <script>
 
         //get saved data
-      //  var myData = localStorage.hasOwnProperty('myData') ? JSON.parse(localStorage.getItem("myData")) : getRandomData();
-        //use random data
-       
+        //  var myData = localStorage.hasOwnProperty('myData') ? JSON.parse(localStorage.getItem("myData")) : getRandomData();
+
+        //use random data       
         var myData = getRandomData();
 
 		var	myPlot = pegChart()               

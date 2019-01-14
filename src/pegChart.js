@@ -6,14 +6,14 @@
 
 var timelines = function() {
 
-    // 1. Create the button
-    var button = document.createElement("button");
-    button.innerHTML = "Save to local storage";
+    // <buttons>
+    var button1 = document.createElement("button");
+    button1.innerHTML = "Save to local storage";
      
    var body = document.getElementById("savebtn")
-    body.appendChild(button);
+    body.appendChild(button1);
    
-    button.addEventListener("click", function () {
+    button1.addEventListener("click", function () {
         var temp = [];
         for (var t = 0; t < env.structData.length; t++) {
             temp.push({
@@ -28,9 +28,103 @@ var timelines = function() {
         localStorage.setItem('myData', temp);       
         console.log("saved" + JSON.stringify(temp));
     });
+            
+    var button2 = document.createElement("button");
+    button2.innerHTML = "Add new";
+
+    body = document.getElementById("newbtn")
+    body.appendChild(button2);
+
+    button2.addEventListener("click", function () {
+        var fdate = d3.max(env.structData, function (d) { return d.finish; })
+        var sdate = new Date(fdate);
+        sdate.setDate(sdate.getDate() - 90);
+       
+        getValue();
+        function getValue() {
+            var retVal = prompt("Enter activity description");           
+            env.structData.push({ group: "|New", label: "|New", start: sdate, finish: fdate, description: retVal, clas: "x" + (env.structData.length + 1) })
+        }             
+        resolveOverlaps()
+        labels = getlabels()
+        env.nLines = getLines();
+        env.graphH = d3.min([env.nLines * env.maxLineHeight, env.maxHeight - env.margin.top - env.margin.bottom]);
+        renderAxises()
+        d3.event = null
+        draw();
+    });
+
+    var button3 = document.createElement("button");
+    button3.innerHTML = "Show delete";
+    
+    body = document.getElementById("deletebtn")
+    body.appendChild(button3);
+
+    button3.addEventListener("click", function () {
+        var fdate = d3.max(env.structData, function (d) { return d.finish; })
+        var sdate = new Date(fdate);
+        sdate.setDate(sdate.getDate() - 90);
+
+        env.structData.push({ group: "|Delete", label: "|Delete", start: sdate, finish: fdate, description: "Move activities to this category TO BE DELETED", clas: "x" + (env.structData.length + 1) })
+        resolveOverlaps()
+        labels = getlabels()
+        env.nLines = getLines();
+        env.graphH = d3.min([env.nLines * env.maxLineHeight, env.maxHeight - env.margin.top - env.margin.bottom]);
+        renderAxises()
+        d3.event = null
+        draw();
+    });
 
 
-    //<General functions>               
+    var button4 = document.createElement("button");
+    button4.innerHTML = "Empty delete";
+
+    body = document.getElementById("emptybtn")
+    body.appendChild(button4);
+
+    button4.addEventListener("click", function () {
+       
+        for (var i = env.structData.length - 1; i >= 0; --i) {
+            if (env.structData[i].group == "|Delete") {
+                env.structData.splice(i, 1);
+            }
+        }
+        resolveOverlaps()
+        labels = getlabels()
+        env.nLines = getLines();
+        env.graphH = d3.min([env.nLines * env.maxLineHeight, env.maxHeight - env.margin.top - env.margin.bottom]);
+        renderAxises()
+        d3.event = null
+        draw();
+    });
+    // <buttons/>
+
+    //<General functions>   
+
+    function invertOrdinal(val, cmpFunc) {
+        cmpFunc = cmpFunc || function (a, b) {
+            return (a >= b);
+        };
+
+        const scDomain = this.domain();
+        let scRange = this.range();
+
+        if (scRange.length === 2 && scDomain.length !== 2) {
+            // Special case, interpolate range vals
+            scRange = d3.range(scRange[0], scRange[1], (scRange[1] - scRange[0]) / scDomain.length);
+        }
+
+        const bias = scRange[0];
+        for (let i = 0, len = scRange.length; i < len; i++) {
+            if (cmpFunc(scRange[i] + bias, val)) {
+                return scDomain[Math.round(i * scDomain.length / scRange.length)];
+            }
+        }
+
+        return this.domain()[this.domain().length - 1];
+    }
+
+
     function convertdata() {
         for (var t = 0; t < env.structData.length; t++) {
             env.structData[t].start = new Date(env.structData[t].start)
@@ -103,11 +197,11 @@ var timelines = function() {
             count = count.filter(onlyUnique)
             env.flatData.push({ category: items[0][env.category], count: count.length })
            });
-
+         
             env.flatData.sort(function (a, b) {
                 return d3.ascending(a.category, b.category);
             });
-        console.log(env.structData)
+        
     }
     //<General functions/>  
 
@@ -132,7 +226,9 @@ var timelines = function() {
             if (env.structData[i].clas === clas) {
                 var delta = env.xScale(env.structData[i].finish) - env.xScale(env.structData[i].start);
                 env.structData[i].finish = env.xScale.invert(d3.event.x + delta);
-                env.structData[i].start = env.xScale.invert(d3.event.x);                            
+                env.structData[i].start = env.xScale.invert(d3.event.x);
+                env.structData[i][env.category] = env.yScale.invert(d3.event.y).split('+&+')[0]
+
             }
         }
        
@@ -385,7 +481,7 @@ var timelines = function() {
 
                
         function buildDomStructure() {
-
+           
             env.graphW = env.width - env.margin.left - env.margin.right;
 
             env.xScale.range([0, env.graphW])
@@ -440,6 +536,9 @@ var timelines = function() {
               .domain(labels)
               .range([env.graphH / labels.length * 0.5, env.graphH * (1 - 0.5 / labels.length)]);
          
+            env.yScale.invert = invertOrdinal;
+            env.grpScale.invert = invertOrdinal;
+
             env.xGrid
                     .scale(env.xScale)
                     .tickSize(env.graphH)
@@ -521,7 +620,8 @@ var timelines = function() {
                 .attr('width', env.graphW)
                 .attr('height', function (d) { return env.graphH * d.count / env.nLines;})
                 .attr('y', function (d) { return env.grpScale(d.category) - env.graphH * d.count / env.nLines / 2; })
-           
+                   
+
         }
 
         function draw() {
