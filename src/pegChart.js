@@ -390,12 +390,12 @@ var timelines = function() {
     //Main    
     var env = {
         width: 1000, 
-        height: 800,
-        maxHeight: 640,
+        height: 300,
+        maxHeight: 1500,
         lineMaxHeight: 16,
         maxLineHeight: 16,
         minLabelFont: 16,
-        margin: { top: 26, right: 100, bottom: 30, left: 90 },
+        margin: { top: 26, right: 0, bottom: 30, left: 90 },
         groupBkgGradient: ['#FAFAFA', '#E0E0E0'],
         xScale: d3.scaleTime(),
         yScale: d3.scalePoint(),
