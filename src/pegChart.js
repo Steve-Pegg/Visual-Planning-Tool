@@ -49,6 +49,7 @@ var timelines = function() {
         labels = getlabels()
         env.nLines = getLines();
         env.graphH = d3.min([env.nLines * env.maxLineHeight, env.maxHeight - env.margin.top - env.margin.bottom]);
+        clip.attr("height", env.graphH);
         renderAxises()
         d3.event = null
         draw();
@@ -70,6 +71,7 @@ var timelines = function() {
         labels = getlabels()
         env.nLines = getLines();
         env.graphH = d3.min([env.nLines * env.maxLineHeight, env.maxHeight - env.margin.top - env.margin.bottom]);
+        clip.attr("height", env.graphH);
         renderAxises()
         d3.event = null
         draw();
@@ -85,7 +87,7 @@ var timelines = function() {
     button4.addEventListener("click", function () {
        
         for (var i = env.structData.length - 1; i >= 0; --i) {
-            if (env.structData[i].group == "|Delete") {
+            if (env.structData[i][env.category] == "|Delete") {
                 env.structData.splice(i, 1);
             }
         }
@@ -93,6 +95,7 @@ var timelines = function() {
         labels = getlabels()
         env.nLines = getLines();
         env.graphH = d3.min([env.nLines * env.maxLineHeight, env.maxHeight - env.margin.top - env.margin.bottom]);
+        clip.attr("height", env.graphH);
         renderAxises()
         d3.event = null
         draw();
@@ -140,7 +143,7 @@ var timelines = function() {
     
     function getColor() {
         var color = [];
-        env.structData.forEach(function (item) {
+        env.structData.forEach(function (item) {           
             color.push(item.label)
         })
         color = color.filter((v, i, a) => a.indexOf(v) === i);
@@ -168,15 +171,16 @@ var timelines = function() {
 
    
     function resolveOverlaps() {      
-        env.flatData = []      
-        var keys = env.structData.map(function (d) { return d[env.category]; })
-                    .reduce(function (p, v) { return p.indexOf(v) == -1 ? p.concat(v) : p; }, [])
-                    .filter(function (d) { return (typeof d !== "undefined") ? d !== null : false });
+        env.flatData = []
 
         env.structData.sort(function (a, b) {
             return d3.descending(a.start, b.start);
         });
-        
+
+        var keys = env.structData.map(function (d) { return d[env.category]; })
+                    .reduce(function (p, v) { return p.indexOf(v) == -1 ? p.concat(v) : p; }, [])
+                    .filter(function (d) { return (typeof d !== "undefined") ? d !== null : false });
+       
         keys.forEach(function (key) {                     
             var items = env.structData.filter(function (d) { return d[env.category] === key; });
             var i, line, count = [], lines = [];
@@ -211,6 +215,12 @@ var timelines = function() {
     }
 
     function dragged(d) {
+
+        var clas, end;
+        if (typeof xt === 'undefined') {
+            xt = env.xScale
+        }        
+
         d3.select(this).attr("transform", function (d, i) {
             return "translate(" + [d3.event.x, d3.event.y] + ")"
         })
@@ -224,9 +234,9 @@ var timelines = function() {
 
         for (var i = 0; i < env.structData.length; i++) {
             if (env.structData[i].clas === clas) {
-                var delta = env.xScale(env.structData[i].finish) - env.xScale(env.structData[i].start);
-                env.structData[i].finish = env.xScale.invert(d3.event.x + delta);
-                env.structData[i].start = env.xScale.invert(d3.event.x);
+                var delta = xt(env.structData[i].finish) - xt(env.structData[i].start);
+                env.structData[i].finish = xt.invert(d3.event.x + delta);
+                env.structData[i].start = xt.invert(d3.event.x);
                 env.structData[i][env.category] = env.yScale.invert(d3.event.y).split('+&+')[0]
 
             }
@@ -238,9 +248,10 @@ var timelines = function() {
        
         resolveOverlaps()       
         labels = getlabels()       
-        env.nLines = getLines();
-        env.graphH = d3.min([env.nLines * env.maxLineHeight, env.maxHeight - env.margin.top - env.margin.bottom]);     
-        renderAxises()
+        env.nLines = getLines();      
+        env.graphH = d3.min([env.nLines * env.maxLineHeight, env.maxHeight - env.margin.top - env.margin.bottom]);
+        clip.attr("height", env.graphH);
+        renderAxises()       
         d3.event = null
         draw();            
     }
@@ -381,10 +392,10 @@ var timelines = function() {
         width: 1000, 
         height: 800,
         maxHeight: 640,
-        lineMaxHeight: 12,
-        maxLineHeight: 12,
+        lineMaxHeight: 16,
+        maxLineHeight: 16,
         minLabelFont: 16,
-        margin: { top: 26, right: 0, bottom: 30, left: 90 },
+        margin: { top: 26, right: 100, bottom: 30, left: 90 },
         groupBkgGradient: ['#FAFAFA', '#E0E0E0'],
         xScale: d3.scaleTime(),
         yScale: d3.scalePoint(),
@@ -405,7 +416,7 @@ var timelines = function() {
         flatData: null
         
     };
-    var lineHeight,g, xt, labels, color, colorScale
+    var lineHeight,g, xt, labels, color, colorScale,clip
     var border = 1;
     var bordercolor = 'black';
     var zoom = d3.zoom()
@@ -413,7 +424,7 @@ var timelines = function() {
                 .on("zoom", draw);
 
     var parseTime = d3.timeParse("%d/%m/%Y")     
-    var colors = ["#EDBB99", "#73C6B6", "#85C1E9", "#95A5A6", "#F4D03F"]
+    var colors = ["#EDBB99", "#73C6B6", "#85C1E9", "#95A5A6", "#F4D03F","#EDBB99","#D5DBDB", "#FEF9E7", "#EBDEF0", "#D2B4DE"]
    
 
     function chart(nodeElem, data) {
@@ -437,7 +448,7 @@ var timelines = function() {
                      .style("stroke", bordercolor)
                      .style("fill", "none")
                      .style("stroke-width", border);
-
+       
         var grad = env.svg.append('defs')
           .append('linearGradient')
           .attr('id', 'grad')
@@ -459,13 +470,19 @@ var timelines = function() {
        
         env.graph = env.svg.append('g')
             
-        g = env.svg.append("g")
+        g = env.svg.append("g").attr("transform", "translate(" + env.margin.left + "," + env.margin.top + ")");
                 
         buildDomStructure();
         convertdata(data)
         parseData(env.structData);
         renderAxises();
         draw();
+        clip = env.svg.append("clipPath")
+           .attr("id", "clip")
+           .append("rect")
+           .attr("width", env.graphW)
+           .attr("height", env.graphH);
+
         return chart;
     }
 
@@ -475,8 +492,9 @@ var timelines = function() {
         resolveOverlaps()       
         labels = getlabels()
         env.nLines = getLines();
-        env.graphW = env.width - env.margin.left - env.margin.right;
+        env.graphW = env.width - env.margin.left - env.margin.right;        
         env.graphH = d3.min([env.nLines * env.maxLineHeight, env.maxHeight - env.margin.top - env.margin.bottom]);
+        g.attr("clip-path", "url(#clip)");           
     }
 
                
@@ -651,7 +669,7 @@ var timelines = function() {
            .append("g")
            .attr("class", "rectangle")
            .attr("fill", function (d, i) { return colorScale(d.label); })
-           .attr("transform", function (d) {
+           .attr("transform", function (d) {             
                return "translate(" + xt(d.start) + "," + (env.yScale(d.sub) - lineHeight / 2) + ")";
            })
            .attr("id", function (d) { return d.clas; })

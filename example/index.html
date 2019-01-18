@@ -1,29 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
+
     <style>
+        .btn-group button {
+            display: block;
+            cursor: pointer; /* Pointer/hand icon */
+            float: left; /* Float the buttons side by side */
+        }
 
-  .btn-group button {
-  display:block;
-  cursor: pointer; /* Pointer/hand icon */
-  float: left; /* Float the buttons side by side */
-}
+        /* Clear floats (clearfix hack) */
+        .btn-group:after {
+            content: "";
+            clear: both;
+            display: block;
+        }
 
-/* Clear floats (clearfix hack) */
-.btn-group:after {
-  content: "";
-  clear: both;
-  display: block;
-}
+        .btn-group button:not(:last-child) {
+            border-right: none; /* Prevent double borders */
+        }
 
-.btn-group button:not(:last-child) {
-  border-right: none; /* Prevent double borders */
-}
-
-/* Add a background color on hover */
-.btn-group button:hover {
-  background-color: #3e8e41;
-}
+        /* Add a background color on hover */
+        .btn-group button:hover {
+            background-color: #3e8e41;
+        }
 
         .axis path,
         .axis line {
@@ -46,7 +46,12 @@
             stroke-dasharray: 5 5;
         }
 
-        .x-axis {
+
+
+        .axises {
+            .x-axis;
+
+        {
             font: 12px sans-serif;
         }
 
@@ -56,10 +61,15 @@
 
         .y-axis, .grp-axis {
             line, path;
+
+        {
+            stroke: none;
         }
 
         text {
             fill: #2F4F4F;
+        }
+
         }
 
         .series-group {
@@ -78,8 +88,41 @@
 
         .legend {
             font-family: Sans-Serif;
+            .legendText;
+
+        {
+            fill: #666;
+        }
+
+        }
+        }
+
+        .brusher {
+            .grid-background;
+
+        {
+            fill: lightgrey;
+        }
+
+        /*.axis path {
+            display: none;
+        }*/
+
+        .tick text {
+            text-anchor: middle;
+        }
+
+        .grid {
+            line, path;
+
+        {
+            stroke: #fff;
+        }
+
+        }
         }
     </style>
+
 </head>
 <body>
 
