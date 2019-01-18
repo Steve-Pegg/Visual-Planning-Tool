@@ -35,7 +35,8 @@ var timelines = function() {
     body = document.getElementById("newbtn")
     body.appendChild(button2);
 
-    button2.addEventListener("click", function () {
+    button2.addEventListener("click", function (e) {
+        e.preventDefault();
         var fdate = d3.max(env.structData, function (d) { return d.finish; })
         var sdate = new Date(fdate);
         sdate.setDate(sdate.getDate() - 90);
@@ -61,7 +62,8 @@ var timelines = function() {
     body = document.getElementById("deletebtn")
     body.appendChild(button3);
 
-    button3.addEventListener("click", function () {
+    button3.addEventListener("click", function (e) {
+        e.preventDefault();
         var fdate = d3.max(env.structData, function (d) { return d.finish; })
         var sdate = new Date(fdate);
         sdate.setDate(sdate.getDate() - 90);
@@ -84,8 +86,8 @@ var timelines = function() {
     body = document.getElementById("emptybtn")
     body.appendChild(button4);
 
-    button4.addEventListener("click", function () {
-       
+    button4.addEventListener("click", function (e) {
+        e.preventDefault();
         for (var i = env.structData.length - 1; i >= 0; --i) {
             if (env.structData[i][env.category] == "|Delete") {
                 env.structData.splice(i, 1);
@@ -390,7 +392,7 @@ var timelines = function() {
     //Main    
     var env = {
         width: 1000, 
-        height: 300,
+        height: 100,
         maxHeight: 1500,
         lineMaxHeight: 16,
         maxLineHeight: 16,
@@ -466,7 +468,7 @@ var timelines = function() {
               return 100 * (i / (env.groupBkgGradient.length - 1)) + '%';
           })
 
-        env.svg.transition().duration(100).attr('width', env.width).attr('height', env.height);
+       // env.svg.transition().duration(100).attr('width', env.width).attr('height', env.height);
        
         env.graph = env.svg.append('g')
             
@@ -545,7 +547,11 @@ var timelines = function() {
            
                
         function renderAxises() {
-         
+
+            env.height = env.graphH + env.margin.top + env.margin.bottom
+
+            env.svg.transition().duration(100).attr('width', env.width).attr('height', env.height);
+                  
             var fontVerticalMargin = 0.6;       
 
             var fontSize = Math.min(12, env.graphH / env.flatData.length * fontVerticalMargin * Math.sqrt(2));        
