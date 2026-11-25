@@ -1,196 +1,38 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-
-    <style>
-        .btn-group button {
-            display: block;
-            cursor: pointer; /* Pointer/hand icon */
-            float: left; /* Float the buttons side by side */
-        }
-
-        /* Clear floats (clearfix hack) */
-        .btn-group:after {
-            content: "";
-            clear: both;
-            display: block;
-        }
-
-        .btn-group button:not(:last-child) {
-            border-right: none; /* Prevent double borders */
-        }
-
-        /* Add a background color on hover */
-        .btn-group button:hover {
-            background-color: #3e8e41;
-        }
-
-        .axis path,
-        .axis line {
-            fill: none;
-            stroke: black;
-        }
-
-        .line {
-            fill: none;
-            stroke: red;
-            stroke-width: 2px;
-        }
-
-        .tick text {
-            font-size: 12px;
-        }
-
-        .tick line {
-            opacity: 0.2;
-            stroke-dasharray: 5 5;
-        }
-
-
-
-        .axises {
-            .x-axis;
-
-        {
-            font: 12px sans-serif;
-        }
-
-        .x-grid line {
-            stroke: #D3D3D3;
-        }
-
-        .y-axis, .grp-axis {
-            line, path;
-
-        {
-            stroke: none;
-        }
-
-        text {
-            fill: #2F4F4F;
-        }
-
-        }
-
-        .series-group {
-            fill-opacity: 0.6;
-            stroke: #808080;
-            stroke-opacity: 0.2;
-        }
-
-        .series-segment {
-            stroke: none;
-        }
-
-        .series-group, .series-segment {
-            cursor: pointer;
-        }
-
-        .legend {
-            font-family: Sans-Serif;
-            .legendText;
-
-        {
-            fill: #666;
-        }
-
-        }
-        }
-
-        .brusher {
-            .grid-background;
-
-        {
-            fill: lightgrey;
-        }
-
-        /*.axis path {
-            display: none;
-        }*/
-
-        .tick text {
-            text-anchor: middle;
-        }
-
-        .grid {
-            line, path;
-
-        {
-            stroke: #fff;
-        }
-
-        }
-        }
-    </style>
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PegChart example</title>
+  <style>
+    body { font: 14px system-ui, sans-serif; margin: 24px; color: #24292f; }
+    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    button { padding: 7px 12px; cursor: pointer; }
+    .peg-chart { max-width: 100%; height: auto; overflow: visible; }
+    .x-axis, .y-axis { font: 12px sans-serif; }
+    .category-band { pointer-events: none; }
+    .activity-bar { stroke: #34495e; stroke-width: .5px; cursor: grab; }
+    .is-dragging .activity-bar { cursor: grabbing; opacity: .8; }
+    .activity-label { pointer-events: none; }
+    .resize-handle { fill: #4a235a; cursor: ew-resize; }
+  </style>
 </head>
 <body>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>   
-<script src="https://d3js.org/d3.v4.min.js"></script>
-<!--<script src="../src/dateform.js"></script>
-<script src="../src/pegChart.js"></script>-->
-<script src="http://pmd3.co.uk/dateform.js"></script>
-<script src="http://pmd3.co.uk/visualtool.js"></script>
-
-    <div class="btn-group">
-        <div id="emptybtn"></div>
-        <div id="deletebtn"></div>
-        <div id="newbtn"></div>  
-        <div id="savebtn"></div>            
-   </div>
-    <div id="myPlot"></div>
-        <script>
-            var myData = [
-                              { group: "group1", label: "label1", start: "2018-09-01", finish: "2018-10-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group1", label: "label1", start: "2018-07-01", finish: "2018-08-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group1", label: "label1", start: "2018-01-01", finish: "2018-02-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group1", label: "label1", start: "2018-04-01", finish: "2018-06-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group1", label: "label1", start: "2018-11-01", finish: "2018-12-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group2", label: "label2", start: "2018-01-01", finish: "2018-02-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group2", label: "label2", start: "2018-03-27", finish: "2018-04-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group2", label: "label2", start: "2018-05-01", finish: "2018-07-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group2", label: "label2", start: "2018-09-01", finish: "2018-10-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group2", label: "label2", start: "2018-11-01", finish: "2018-12-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group2", label: "label2", start: "2018-06-01", finish: "2018-07-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group3", label: "label3", start: "2018-08-01", finish: "2018-09-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group3", label: "label3", start: "2018-10-01", finish: "2018-11-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group3", label: "label3", start: "2018-07-01", finish: "2018-08-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group3", label: "label3", start: "2018-02-01", finish: "2018-04-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group3", label: "label3", start: "2018-10-01", finish: "2019-01-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group3", label: "label3", start: "2019-03-01", finish: "2019-05-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group4", label: "label4", start: "2018-09-01", finish: "2018-10-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group4", label: "label4", start: "2018-07-01", finish: "2018-08-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group4", label: "label4", start: "2018-01-01", finish: "2018-02-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group4", label: "label4", start: "2018-04-01", finish: "2018-06-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group4", label: "label4", start: "2018-11-01", finish: "2018-12-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group5", label: "label5", start: "2018-01-01", finish: "2018-02-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group5", label: "label5", start: "2018-03-27", finish: "2018-04-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group5", label: "label5", start: "2018-05-01", finish: "2018-07-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group5", label: "label5", start: "2018-09-01", finish: "2018-10-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group5", label: "label5", start: "2018-11-01", finish: "2018-12-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group5", label: "label5", start: "2018-06-01", finish: "2018-07-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group6", label: "label6", start: "2018-08-01", finish: "2018-09-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group6", label: "label6", start: "2018-10-01", finish: "2018-11-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group6", label: "label6", start: "2018-07-01", finish: "2018-08-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group6", label: "label6", start: "2018-02-01", finish: "2018-04-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group6", label: "label6", start: "2018-10-01", finish: "2019-01-01", description: "Lorem Ipsum", myCategory: "" },
-                              { group: "group6", label: "label6", start: "2019-03-01", finish: "2019-05-01", description: "Lorem Ipsum", myCategory: "" }];
-
-
-
-            myPlot = pegChart()
-                   .category("group")
-                   .leftMargin(50)
-                   .width(1500);
-
-            document.addEventListener("DOMContentLoaded", function () {
-                myPlot(document.getElementById("myPlot"), myData);
-
-            });
-
-
-        </script>
-
-
+  <h1>Interactive project timeline</h1>
+  <div class="btn-group">
+    <div id="emptybtn"></div><div id="deletebtn"></div><div id="newbtn"></div><div id="savebtn"></div>
+  </div>
+  <div id="myPlot"></div>
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <script src="../src/pegChart.js"></script>
+  <script src="rndata.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var saved = null;
+      try { saved = JSON.parse(localStorage.getItem("myData") || "null"); } catch (error) { /* use sample data */ }
+      var chart = pegChart().leftMargin(150).width(1100);
+      chart(document.getElementById("myPlot"), saved || getRandomData());
+    });
+  </script>
 </body>
+</html>
