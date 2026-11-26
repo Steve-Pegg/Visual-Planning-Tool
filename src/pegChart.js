@@ -103,7 +103,9 @@
         function updateZoomedTimeline(transform) {
             if (!baseXScale) return;
             xScale = transform.rescaleX(baseXScale);
-            plot.select(".x-axis").call(d3.axisBottom(xScale).ticks(8).tickFormat(d3.timeFormat("%b %Y")));
+            var timeAxis = d3.axisBottom(xScale).ticks(8).tickFormat(d3.timeFormat("%b %Y"));
+            plot.select(".x-axis").call(timeAxis);
+            plot.select(".x-axis-top").call(d3.axisTop(xScale).ticks(8).tickFormat(d3.timeFormat("%b %Y")));
             plot.select(".x-grid").call(d3.axisTop(xScale).ticks(8).tickSize(-plotHeight).tickFormat(""));
             plot.select(".activities").selectAll("g.activity").attr("transform", function (item) {
                 return "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight * 0.12) + ")";
@@ -136,6 +138,7 @@
             updateZoomedTimeline(d3.zoomTransform(overlay.node()));
 
             plot.select(".x-axis").attr("transform", "translate(0," + plotHeight + ")");
+            plot.select(".x-axis-top").attr("transform", "translate(0,0)");
             plot.select(".y-axis").call(d3.axisLeft(yScale).tickValues(lanes.map(function (group) { return group.firstRow + group.count / 2; }))
                 .tickFormat(function (value) {
                     var group = lanes.find(function (entry) { return value >= entry.firstRow && value <= entry.firstRow + entry.count; });
@@ -228,6 +231,7 @@
             plot = svg.append("g").attr("class", "plot");
             plot.append("g").attr("class", "category-bands").attr("pointer-events", "none");
             plot.append("g").attr("class", "x-grid").attr("clip-path", "url(#" + clipId + ")").attr("pointer-events", "none");
+            plot.append("g").attr("class", "x-axis-top");
             overlay = plot.append("rect").attr("class", "zoom-overlay").attr("fill", "transparent").style("pointer-events", "all");
             plot.append("g").attr("class", "activities").attr("clip-path", "url(#" + clipId + ")");
             plot.append("g").attr("class", "x-axis");
