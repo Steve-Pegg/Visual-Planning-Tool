@@ -105,11 +105,15 @@
             xScale = transform.rescaleX(baseXScale);
             plot.select(".x-axis").call(d3.axisBottom(xScale).ticks(8).tickFormat(d3.timeFormat("%b %Y")));
             plot.select(".x-grid").call(d3.axisTop(xScale).ticks(8).tickSize(-plotHeight).tickFormat(""));
-            plot.selectAll("g.activity").attr("transform", function (item) {
+            plot.select(".activities").selectAll("g.activity").attr("transform", function (item) {
                 return "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight * 0.12) + ")";
             });
-            plot.selectAll(".activity-bar").attr("width", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)); });
-            plot.selectAll(".resize-finish").attr("x", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)) - 3; });
+            plot.select(".activities").selectAll(".activity-bar").attr("width", function (item) {
+                return Math.max(2, xScale(item.finish) - xScale(item.start));
+            });
+            plot.select(".activities").selectAll(".resize-finish").attr("x", function (item) {
+                return Math.max(2, xScale(item.finish) - xScale(item.start)) - 3;
+            });
             plot.select(".x-grid").selectAll(".tick line").attr("stroke", "#d8dee4").attr("stroke-dasharray", "2,3");
         }
 
@@ -162,7 +166,8 @@
                 .attr("y1", function (d) { return yScale(d.firstRow); }).attr("y2", function (d) { return yScale(d.firstRow); })
                 .attr("stroke", "#b8c2cc").attr("stroke-width", 1);
 
-            var bars = plot.selectAll("g.activity").data(data, function (d) { return d._id; });
+            var activityLayer = plot.select(".activities");
+            var bars = activityLayer.selectAll("g.activity").data(data, function (d) { return d._id; });
             bars.exit().remove();
             var entered = bars.enter().append("g").attr("class", "activity");
             entered.append("rect").attr("class", "activity-bar");
@@ -219,7 +224,7 @@
             data = normalize(items);
             host.innerHTML = "";
             svg = d3.select(host).append("svg").attr("class", "peg-chart").attr("role", "img").attr("aria-label", "Interactive project timeline").style("display", "block").style("width", "100%").style("max-width", "100%");
-            svg.append("defs").append("clipPath").attr("id", clipId).append("rect");
+            svg.append("defs").append("clipPath").attr("id", clipId).attr("clipPathUnits", "userSpaceOnUse").append("rect");
             plot = svg.append("g").attr("class", "plot");
             plot.append("g").attr("class", "category-bands").attr("pointer-events", "none");
             plot.append("g").attr("class", "x-grid").attr("clip-path", "url(#" + clipId + ")").attr("pointer-events", "none");
@@ -268,9 +273,7 @@
             if (typeof ResizeObserver !== "undefined") {
                 resizeObserver = new ResizeObserver(function () {
                     clearTimeout(resizeTimer);
-                    resizeTimer = setTimeout(function () {
-                        if (settings.width === null) render();
-                    }, 50);
+                    resizeTimer = setTimeout(function () { if (settings.width === null) render(); }, 50);
                 });
                 resizeObserver.observe(host);
             } else {
