@@ -8,7 +8,7 @@
     function timelines() {
         var settings = {
             width: null, maxHeight: 1500, rowHeight: 28, minBarHeight: 8,
-            margin: { top: 28, right: 24, bottom: 42, left: 140 }, category: "group",
+            margin: { top: 8, right: 24, bottom: 26, left: 140 }, category: "group",
             colors: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9", "#F0E442", "#333333"],
             laneAccents: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9"]
         };
@@ -52,18 +52,20 @@
                 item._row = group.firstRow + item._lane;
             });
             rowCount = Math.max(1, row);
-            var configuredMax = settings.maxHeight - settings.margin.top - settings.margin.bottom;
-            // Fit only the lanes in the data into the remaining viewport below the chart host.
+
+            // Use only the lanes in the data, compressing their row spacing to fit the visible viewport.
+            // Subtract the chart's actual position and axis margins, without arbitrary extra padding.
+            var configuredPlotMax = Math.max(settings.minBarHeight * rowCount,
+                settings.maxHeight - settings.margin.top - settings.margin.bottom);
             var hostTop = host ? Math.max(0, host.getBoundingClientRect().top) : 0;
-            var viewportAvailable = window.innerHeight
-                ? window.innerHeight - hostTop - settings.margin.top - settings.margin.bottom - 24
-                : configuredMax;
-            var available = Math.max(0, Math.min(configuredMax, viewportAvailable));
-            var naturalHeight = rowCount * settings.rowHeight;
-            var minHeight = rowCount * settings.minBarHeight;
-            plotHeight = Math.max(minHeight, Math.min(available, naturalHeight));
+            var viewportPlotSpace = window.innerHeight
+                ? window.innerHeight - hostTop - settings.margin.top - settings.margin.bottom
+                : configuredPlotMax;
+            var availablePlotHeight = Math.max(settings.minBarHeight * rowCount,
+                Math.min(configuredPlotMax, viewportPlotSpace));
+            plotHeight = Math.min(rowCount * settings.rowHeight, availablePlotHeight);
             rowHeight = plotHeight / rowCount;
-            barHeight = Math.max(settings.minBarHeight, Math.min(settings.rowHeight * 0.76, rowHeight * 0.76));
+            barHeight = Math.max(settings.minBarHeight, rowHeight * 0.76);
         }
         function dateDomain() {
             var starts = data.map(function (item) { return item.start; }), finishes = data.map(function (item) { return item.finish; });
@@ -236,14 +238,10 @@
             attachButton("emptybtn", "Empty delete", function () { data = data.filter(function (item) { return item._category !== "|Delete"; }); render(); });
             render();
             if (typeof ResizeObserver !== "undefined") {
-                resizeObserver = new ResizeObserver(function () {
-                    clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 50);
-                });
+                resizeObserver = new ResizeObserver(function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 50); });
                 resizeObserver.observe(host);
             }
-            window.addEventListener("resize", function () {
-                clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 50);
-            });
+            window.addEventListener("resize", function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 50); });
             return chart;
         }
         function setter(name, getter, apply) {
