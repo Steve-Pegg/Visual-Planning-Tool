@@ -1,53 +1,36 @@
-/*
- * PegChart: interactive timeline chart built for D3 v6.
- * Data items use { group, label, start, finish, description } by default.
- */
+/* PegChart: interactive timeline chart built for D3 v6. */
 (function (global, factory) {
-    if (typeof module === "object" && module.exports) {
-        module.exports = factory();
-    } else if (typeof define === "function" && define.amd) {
-        define(factory);
-    } else {
-        global.pegChart = factory();
-    }
+    if (typeof module === "object" && module.exports) module.exports = factory();
+    else if (typeof define === "function" && define.amd) define(factory);
+    else global.pegChart = factory();
 }(typeof globalThis !== "undefined" ? globalThis : this, function () {
     "use strict";
-
     function timelines() {
         var settings = {
-            width: null,
-            maxHeight: 1500,
-            rowHeight: 28,
-            minBarHeight: 8,
-            margin: { top: 28, right: 24, bottom: 42, left: 140 },
-            category: "group",
+            width: null, maxHeight: 1500, rowHeight: 28, minBarHeight: 8,
+            margin: { top: 28, right: 24, bottom: 42, left: 140 }, category: "group",
             colors: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9", "#F0E442", "#333333"],
             laneAccents: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9"]
         };
         var host, svg, plot, overlay, baseXScale, xScale, yScale, colorScale, zoom;
         var resizeObserver, resizeTimer;
         var data = [], lanes = [], plotHeight = 0, rowCount = 1, rowHeight = settings.rowHeight, barHeight = 20;
-        var uniqueId = "peg-chart-" + Math.random().toString(36).slice(2, 10);
-        var clipId = uniqueId + "-clip";
+        var uniqueId = "peg-chart-" + Math.random().toString(36).slice(2, 10), clipId = uniqueId + "-clip";
 
         function date(value) {
             var parsed = value instanceof Date ? new Date(value.getTime()) : new Date(value);
             return isNaN(parsed.getTime()) ? null : parsed;
         }
-
         function normalize(items) {
             return (items || []).map(function (item, index) {
                 var start = date(item.start), finish = date(item.finish);
                 if (!start || !finish) throw new Error("Each activity needs valid start and finish dates.");
                 return Object.assign({}, item, {
-                    start: start,
-                    finish: finish,
-                    _id: item._id || (uniqueId + "-" + index),
+                    start: start, finish: finish, _id: item._id || (uniqueId + "-" + index),
                     _category: item[settings.category] == null ? "Uncategorised" : String(item[settings.category])
                 });
             });
         }
-
         function allocateLanes() {
             var categories = Array.from(new Set(data.map(function (item) { return item._category; }))).sort();
             lanes = [];
@@ -58,8 +41,7 @@
                 items.forEach(function (item) {
                     var lane = ends.findIndex(function (end) { return end <= item.start; });
                     if (lane < 0) lane = ends.length;
-                    ends[lane] = item.finish;
-                    item._lane = lane;
+                    ends[lane] = item.finish; item._lane = lane;
                 });
                 lanes.push({ category: category, count: Math.max(1, ends.length), firstRow: 0 });
             });
@@ -70,23 +52,21 @@
                 item._row = group.firstRow + item._lane;
             });
             rowCount = Math.max(1, row);
-
-            var configuredMaxHeight = settings.maxHeight - settings.margin.top - settings.margin.bottom;
-            var browserMaxHeight = window.innerHeight
-                ? Math.max(settings.minBarHeight * rowCount, window.innerHeight - settings.margin.top - settings.margin.bottom - 120)
-                : configuredMaxHeight;
-            var availableHeight = Math.min(configuredMaxHeight, browserMaxHeight);
+            var configuredMax = settings.maxHeight - settings.margin.top - settings.margin.bottom;
+            // Fit only the lanes in the data into the remaining viewport below the chart host.
+            var hostTop = host ? Math.max(0, host.getBoundingClientRect().top) : 0;
+            var viewportAvailable = window.innerHeight
+                ? window.innerHeight - hostTop - settings.margin.top - settings.margin.bottom - 24
+                : configuredMax;
+            var available = Math.max(0, Math.min(configuredMax, viewportAvailable));
             var naturalHeight = rowCount * settings.rowHeight;
-            var minimumHeight = rowCount * settings.minBarHeight;
-
-            plotHeight = Math.max(minimumHeight, Math.min(availableHeight, naturalHeight));
+            var minHeight = rowCount * settings.minBarHeight;
+            plotHeight = Math.max(minHeight, Math.min(available, naturalHeight));
             rowHeight = plotHeight / rowCount;
             barHeight = Math.max(settings.minBarHeight, Math.min(settings.rowHeight * 0.76, rowHeight * 0.76));
         }
-
         function dateDomain() {
-            var starts = data.map(function (item) { return item.start; });
-            var finishes = data.map(function (item) { return item.finish; });
+            var starts = data.map(function (item) { return item.start; }), finishes = data.map(function (item) { return item.finish; });
             if (!starts.length) {
                 var now = new Date();
                 return [new Date(now.getFullYear(), now.getMonth() - 1, 1), new Date(now.getFullYear(), now.getMonth() + 2, 1)];
@@ -96,21 +76,18 @@
             var padding = Math.max(86400000, (max - min) * 0.025);
             return [new Date(+min - padding), new Date(+max + padding)];
         }
-
         function resolvedWidth() {
             if (settings.width !== null) return Math.max(200, Math.floor(settings.width));
-            var hostWidth = host ? Math.floor(host.getBoundingClientRect().width) : 0;
-            if (!hostWidth && host && host.parentElement) hostWidth = Math.floor(host.parentElement.getBoundingClientRect().width);
-            if (!hostWidth) hostWidth = Math.floor(window.innerWidth || 1000);
-            return Math.max(200, hostWidth);
+            var w = host ? Math.floor(host.getBoundingClientRect().width) : 0;
+            if (!w && host && host.parentElement) w = Math.floor(host.parentElement.getBoundingClientRect().width);
+            if (!w) w = Math.floor(window.innerWidth || 1000);
+            return Math.max(200, w);
         }
-
         function nearestCategory(y) {
             var row = Math.max(0, Math.min(Math.round(y / rowHeight - 0.5), rowCount - 1));
             var nearest = data.slice().sort(function (a, b) { return Math.abs(a._row - row) - Math.abs(b._row - row); })[0];
             return nearest ? nearest._category : settings.category;
         }
-
         function updateZoomedTimeline(transform) {
             if (!baseXScale) return;
             xScale = transform.rescaleX(baseXScale);
@@ -120,77 +97,58 @@
             plot.select(".activities").selectAll("g.activity").attr("transform", function (item) {
                 return "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight / 2 - barHeight / 2) + ")";
             });
-            plot.select(".activities").selectAll(".activity-bar").attr("width", function (item) {
-                return Math.max(2, xScale(item.finish) - xScale(item.start));
-            }).attr("height", barHeight);
+            plot.select(".activities").selectAll(".activity-bar").attr("width", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)); }).attr("height", barHeight);
             plot.select(".activities").selectAll(".resize-handle").attr("height", barHeight);
-            plot.select(".activities").selectAll(".resize-finish").attr("x", function (item) {
-                return Math.max(2, xScale(item.finish) - xScale(item.start)) - 3;
-            });
+            plot.select(".activities").selectAll(".resize-finish").attr("x", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)) - 3; });
             plot.select(".activities").selectAll(".activity-label").attr("y", Math.min(barHeight * 0.55, rowHeight * 0.5));
             plot.select(".x-grid").selectAll(".tick line").attr("stroke", "#d8dee4").attr("stroke-dasharray", "2,3");
         }
-
         function updateBarDuringResize(selection, item, resizeStart) {
-            var width = Math.max(2, xScale(item.finish) - xScale(item.start));
-            selection.select(".activity-bar").attr("width", width).attr("height", barHeight);
-            selection.select(".resize-handle").attr("height", barHeight);
-            selection.select(".resize-finish").attr("x", width - 3);
-            if (resizeStart) {
-                selection.attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight / 2 - barHeight / 2) + ")");
-            }
+            var w = Math.max(2, xScale(item.finish) - xScale(item.start));
+            selection.select(".activity-bar").attr("width", w).attr("height", barHeight);
+            selection.selectAll(".resize-handle").attr("height", barHeight);
+            selection.select(".resize-finish").attr("x", w - 3);
+            if (resizeStart) selection.attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight / 2 - barHeight / 2) + ")");
         }
-
         function render() {
             if (!svg) return;
             allocateLanes();
-            var width = resolvedWidth();
-            var innerWidth = Math.max(1, width - settings.margin.left - settings.margin.right);
+            var width = resolvedWidth(), innerWidth = Math.max(1, width - settings.margin.left - settings.margin.right);
             var height = plotHeight + settings.margin.top + settings.margin.bottom;
             svg.attr("width", width).attr("height", height).attr("viewBox", "0 0 " + width + " " + height);
             plot.attr("transform", "translate(" + settings.margin.left + "," + settings.margin.top + ")");
-
             svg.select("#" + clipId + " rect").attr("width", innerWidth).attr("height", plotHeight);
             overlay.attr("width", innerWidth).attr("height", plotHeight);
             zoom.extent([[0, 0], [innerWidth, plotHeight]]).translateExtent([[0, 0], [innerWidth, plotHeight]]);
-
             baseXScale = d3.scaleTime().domain(dateDomain()).range([0, innerWidth]);
             yScale = d3.scaleLinear().domain([0, rowCount]).range([0, plotHeight]);
             colorScale = d3.scaleOrdinal(settings.colors).domain(Array.from(new Set(data.map(function (item) { return item.label || "Activity"; }))));
             updateZoomedTimeline(d3.zoomTransform(overlay.node()));
-
             plot.select(".x-axis").attr("transform", "translate(0," + plotHeight + ")");
             plot.select(".x-axis-top").attr("transform", "translate(0,0)");
-            plot.select(".y-axis").call(d3.axisLeft(yScale).tickValues(lanes.map(function (group) { return group.firstRow + group.count / 2; }))
+            plot.select(".y-axis").call(d3.axisLeft(yScale).tickValues(lanes.map(function (g) { return g.firstRow + g.count / 2; }))
                 .tickFormat(function (value) {
                     var group = lanes.find(function (entry) { return value >= entry.firstRow && value <= entry.firstRow + entry.count; });
                     return group ? group.category : "";
-                }).tickSize(0)).selectAll("text")
-                .attr("fill", "#17202a").style("font-size", "13px").style("font-weight", "700");
-
+                }).tickSize(0)).selectAll("text").attr("fill", "#17202a").style("font-size", "13px").style("font-weight", "700");
             var bandHost = plot.select(".category-bands");
             var bands = bandHost.selectAll(".category-band").data(lanes, function (d) { return d.category; });
             bands.exit().remove();
             bands.enter().append("rect").attr("class", "category-band").merge(bands)
-                .attr("x", 0).attr("width", innerWidth)
-                .attr("y", function (d) { return yScale(d.firstRow); })
+                .attr("x", 0).attr("width", innerWidth).attr("y", function (d) { return yScale(d.firstRow); })
                 .attr("height", function (d) { return yScale(d.firstRow + d.count) - yScale(d.firstRow); })
                 .attr("fill", function (d, i) { return i % 2 ? "#e9eef3" : "#ffffff"; });
-
             var accents = bandHost.selectAll(".category-accent").data(lanes, function (d) { return d.category; });
             accents.exit().remove();
             accents.enter().append("rect").attr("class", "category-accent").merge(accents)
                 .attr("x", 0).attr("width", 5).attr("y", function (d) { return yScale(d.firstRow); })
                 .attr("height", function (d) { return yScale(d.firstRow + d.count) - yScale(d.firstRow); })
                 .attr("fill", function (d, i) { return settings.laneAccents[i % settings.laneAccents.length]; });
-
             var dividers = bandHost.selectAll(".category-divider").data(lanes.filter(function (d) { return d.firstRow > 0; }), function (d) { return d.category; });
             dividers.exit().remove();
             dividers.enter().append("line").attr("class", "category-divider").merge(dividers)
-                .attr("x1", 0).attr("x2", innerWidth)
-                .attr("y1", function (d) { return yScale(d.firstRow); }).attr("y2", function (d) { return yScale(d.firstRow); })
+                .attr("x1", 0).attr("x2", innerWidth).attr("y1", function (d) { return yScale(d.firstRow); }).attr("y2", function (d) { return yScale(d.firstRow); })
                 .attr("stroke", "#b8c2cc").attr("stroke-width", 1);
-
             var activityLayer = plot.select(".activities");
             var bars = activityLayer.selectAll("g.activity").data(data, function (d) { return d._id; });
             bars.exit().remove();
@@ -202,8 +160,7 @@
             bars = entered.merge(bars);
             bars.attr("transform", function (item) { return "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight / 2 - barHeight / 2) + ")"; });
             bars.select(".activity-bar").attr("width", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)); })
-                .attr("height", barHeight).attr("rx", 2)
-                .attr("fill", function (item) { return colorScale(item.label || "Activity"); });
+                .attr("height", barHeight).attr("rx", 2).attr("fill", function (item) { return colorScale(item.label || "Activity"); });
             bars.select(".activity-bar").selectAll("title").data(function (item) { return [item]; }).join("title")
                 .text(function (item) { return item.description || item.label || "Activity"; });
             bars.select(".activity-label").attr("x", 5).attr("y", Math.min(barHeight * 0.55, rowHeight * 0.5))
@@ -212,50 +169,38 @@
             bars.select(".resize-start").attr("x", -2).attr("y", 0).attr("width", 5).attr("height", barHeight);
             bars.select(".resize-finish").attr("x", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)) - 3; })
                 .attr("y", 0).attr("width", 5).attr("height", barHeight);
-
             bars.call(d3.drag().on("start", function () { d3.select(this).raise().classed("is-dragging", true); })
                 .on("drag", function (event, item) {
                     item.start = new Date(+xScale.invert(xScale(item.start) + event.dx));
                     item.finish = new Date(+xScale.invert(xScale(item.finish) + event.dx));
                     item._category = nearestCategory(yScale(item._row) + event.dy + rowHeight / 2);
                     item[settings.category] = item._category;
-                    d3.select(this).attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight / 2 - barHeight / 2) + ")");
+                    d3.select(this).attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + event.dy + rowHeight / 2 - barHeight / 2) + ")");
                 }).on("end", function () { d3.select(this).classed("is-dragging", false); render(); }));
-
-            bars.select(".resize-start").call(d3.drag()
-                .container(function () { return overlay.node(); })
+            bars.select(".resize-start").call(d3.drag().container(function () { return overlay.node(); })
                 .on("drag", function (event, item) {
                     item.start = new Date(+xScale.invert(xScale(item.start) + event.dx));
                     if (item.start > item.finish) item.start = new Date(item.finish);
                     updateBarDuringResize(d3.select(this.parentNode), item, true);
-                })
-                .on("end", function () { render(); }));
-            bars.select(".resize-finish").call(d3.drag()
-                .container(function () { return overlay.node(); })
+                }).on("end", function () { render(); }));
+            bars.select(".resize-finish").call(d3.drag().container(function () { return overlay.node(); })
                 .on("drag", function (event, item) {
                     item.finish = new Date(+xScale.invert(xScale(item.finish) + event.dx));
                     if (item.finish < item.start) item.finish = new Date(item.start);
                     updateBarDuringResize(d3.select(this.parentNode), item, false);
-                })
-                .on("end", function () { render(); }));
+                }).on("end", function () { render(); }));
         }
-
         function attachButton(id, label, action) {
-            var container = document.getElementById(id);
-            if (!container) return;
-            var button = document.createElement("button");
-            button.type = "button";
-            button.textContent = label;
-            button.addEventListener("click", action);
-            container.appendChild(button);
+            var container = document.getElementById(id); if (!container) return;
+            var button = document.createElement("button"); button.type = "button"; button.textContent = label;
+            button.addEventListener("click", action); container.appendChild(button);
         }
-
         function chart(node, items) {
             host = typeof node === "string" ? document.querySelector(node) : node;
             if (!host) throw new Error("PegChart target element was not found.");
-            data = normalize(items);
-            host.innerHTML = "";
-            svg = d3.select(host).append("svg").attr("class", "peg-chart").attr("role", "img").attr("aria-label", "Interactive project timeline").style("display", "block").style("width", "100%").style("max-width", "100%");
+            data = normalize(items); host.innerHTML = "";
+            svg = d3.select(host).append("svg").attr("class", "peg-chart").attr("role", "img")
+                .attr("aria-label", "Interactive project timeline").style("display", "block").style("width", "100%").style("max-width", "100%");
             svg.append("defs").append("clipPath").attr("id", clipId).attr("clipPathUnits", "userSpaceOnUse").append("rect");
             plot = svg.append("g").attr("class", "plot");
             plot.append("g").attr("class", "category-bands").attr("pointer-events", "none");
@@ -263,64 +208,48 @@
             plot.append("g").attr("class", "x-axis-top");
             overlay = plot.append("rect").attr("class", "zoom-overlay").attr("fill", "transparent").style("pointer-events", "all");
             plot.append("g").attr("class", "activities").attr("clip-path", "url(#" + clipId + ")");
-            plot.append("g").attr("class", "x-axis");
-            plot.append("g").attr("class", "y-axis");
+            plot.append("g").attr("class", "x-axis"); plot.append("g").attr("class", "y-axis");
             zoom = d3.zoom().scaleExtent([0.5, 32]).on("zoom", function (event) { updateZoomedTimeline(event.transform); });
             overlay.call(zoom);
-
             attachButton("savebtn", "Save to local storage", function () {
                 var serializable = data.map(function (item) {
                     var copy = Object.assign({}, item);
                     delete copy._id; delete copy._category; delete copy._lane; delete copy._row;
-                    copy.start = item.start.toISOString().slice(0, 10);
-                    copy.finish = item.finish.toISOString().slice(0, 10);
-                    return copy;
+                    copy.start = item.start.toISOString().slice(0, 10); copy.finish = item.finish.toISOString().slice(0, 10); return copy;
                 });
                 try { localStorage.setItem("myData", JSON.stringify(serializable)); }
                 catch (error) { window.alert("Could not save chart data: " + error.message); }
             });
             attachButton("newbtn", "Add new", function () {
-                var description = window.prompt("Enter activity description");
-                if (description === null) return;
+                var description = window.prompt("Enter activity description"); if (description === null) return;
                 var latest = d3.max(data, function (item) { return item.finish; }) || new Date();
                 var start = new Date(+latest); start.setDate(start.getDate() - 30);
                 var item = { group: "New", label: "New", start: start, finish: new Date(latest), description: description };
-                item[settings.category] = "New";
-                data.push.apply(data, normalize([item]));
-                render();
+                item[settings.category] = "New"; data.push.apply(data, normalize([item])); render();
             });
             attachButton("deletebtn", "Show delete", function () {
                 var latest = d3.max(data, function (item) { return item.finish; }) || new Date();
                 var start = new Date(+latest); start.setDate(start.getDate() - 30);
                 var item = { group: "|Delete", label: "|Delete", start: start, finish: new Date(latest), description: "Move activities here to mark them for deletion." };
-                item[settings.category] = "|Delete";
-                data.push.apply(data, normalize([item]));
-                render();
+                item[settings.category] = "|Delete"; data.push.apply(data, normalize([item])); render();
             });
-            attachButton("emptybtn", "Empty delete", function () {
-                data = data.filter(function (item) { return item._category !== "|Delete"; });
-                render();
-            });
-
+            attachButton("emptybtn", "Empty delete", function () { data = data.filter(function (item) { return item._category !== "|Delete"; }); render(); });
             render();
             if (typeof ResizeObserver !== "undefined") {
                 resizeObserver = new ResizeObserver(function () {
-                    clearTimeout(resizeTimer);
-                    resizeTimer = setTimeout(function () { if (settings.width === null) render(); }, 50);
+                    clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 50);
                 });
                 resizeObserver.observe(host);
-            } else {
-                window.addEventListener("resize", function () { if (settings.width === null) render(); });
             }
+            window.addEventListener("resize", function () {
+                clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 50);
+            });
             return chart;
         }
-
         function setter(name, getter, apply) {
             chart[name] = function (value) {
                 if (!arguments.length) return getter();
-                apply(value);
-                if (svg) render();
-                return chart;
+                apply(value); if (svg) render(); return chart;
             };
         }
         setter("width", function () { return settings.width; }, function (value) {
@@ -340,9 +269,7 @@
         });
         chart.data = function (value) {
             if (!arguments.length) return data.slice();
-            data = normalize(value);
-            if (svg) render();
-            return chart;
+            data = normalize(value); if (svg) render(); return chart;
         };
         return chart;
     }
