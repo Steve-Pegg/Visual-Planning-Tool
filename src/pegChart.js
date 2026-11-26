@@ -18,6 +18,7 @@
             width: null,
             maxHeight: 1500,
             rowHeight: 28,
+            minBarHeight: 8,
             margin: { top: 28, right: 24, bottom: 42, left: 140 },
             category: "group",
             colors: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9", "#F0E442", "#333333"],
@@ -25,7 +26,7 @@
         };
         var host, svg, plot, overlay, baseXScale, xScale, yScale, colorScale, zoom;
         var resizeObserver, resizeTimer;
-        var data = [], lanes = [], plotHeight = 0, rowCount = 1, rowHeight = settings.rowHeight;
+        var data = [], lanes = [], plotHeight = 0, rowCount = 1, rowHeight = settings.rowHeight, barHeight = 20;
         var uniqueId = "peg-chart-" + Math.random().toString(36).slice(2, 10);
         var clipId = uniqueId + "-clip";
 
@@ -69,8 +70,18 @@
                 item._row = group.firstRow + item._lane;
             });
             rowCount = Math.max(1, row);
-            plotHeight = Math.max(settings.rowHeight, Math.min(settings.maxHeight - settings.margin.top - settings.margin.bottom, rowCount * settings.rowHeight));
+
+            var configuredMaxHeight = settings.maxHeight - settings.margin.top - settings.margin.bottom;
+            var browserMaxHeight = window.innerHeight
+                ? Math.max(settings.minBarHeight * rowCount, window.innerHeight - settings.margin.top - settings.margin.bottom - 120)
+                : configuredMaxHeight;
+            var availableHeight = Math.min(configuredMaxHeight, browserMaxHeight);
+            var naturalHeight = rowCount * settings.rowHeight;
+            var minimumHeight = rowCount * settings.minBarHeight;
+
+            plotHeight = Math.max(minimumHeight, Math.min(availableHeight, naturalHeight));
             rowHeight = plotHeight / rowCount;
+            barHeight = Math.max(settings.minBarHeight, Math.min(settings.rowHeight * 0.76, rowHeight * 0.76));
         }
 
         function dateDomain() {
@@ -107,23 +118,26 @@
             plot.select(".x-axis-top").call(d3.axisTop(xScale).ticks(8).tickFormat(d3.timeFormat("%b %Y")));
             plot.select(".x-grid").call(d3.axisTop(xScale).ticks(8).tickSize(-plotHeight).tickFormat(""));
             plot.select(".activities").selectAll("g.activity").attr("transform", function (item) {
-                return "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight * 0.12) + ")";
+                return "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight / 2 - barHeight / 2) + ")";
             });
             plot.select(".activities").selectAll(".activity-bar").attr("width", function (item) {
                 return Math.max(2, xScale(item.finish) - xScale(item.start));
-            });
+            }).attr("height", barHeight);
+            plot.select(".activities").selectAll(".resize-handle").attr("height", barHeight);
             plot.select(".activities").selectAll(".resize-finish").attr("x", function (item) {
                 return Math.max(2, xScale(item.finish) - xScale(item.start)) - 3;
             });
+            plot.select(".activities").selectAll(".activity-label").attr("y", Math.min(barHeight * 0.55, rowHeight * 0.5));
             plot.select(".x-grid").selectAll(".tick line").attr("stroke", "#d8dee4").attr("stroke-dasharray", "2,3");
         }
 
         function updateBarDuringResize(selection, item, resizeStart) {
             var width = Math.max(2, xScale(item.finish) - xScale(item.start));
-            selection.select(".activity-bar").attr("width", width);
+            selection.select(".activity-bar").attr("width", width).attr("height", barHeight);
+            selection.select(".resize-handle").attr("height", barHeight);
             selection.select(".resize-finish").attr("x", width - 3);
             if (resizeStart) {
-                selection.attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight * 0.12) + ")");
+                selection.attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight / 2 - barHeight / 2) + ")");
             }
         }
 
@@ -186,18 +200,18 @@
             entered.append("rect").attr("class", "resize-handle resize-start");
             entered.append("rect").attr("class", "resize-handle resize-finish");
             bars = entered.merge(bars);
-            bars.attr("transform", function (item) { return "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight * 0.12) + ")"; });
+            bars.attr("transform", function (item) { return "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight / 2 - barHeight / 2) + ")"; });
             bars.select(".activity-bar").attr("width", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)); })
-                .attr("height", Math.max(8, rowHeight * 0.76)).attr("rx", 2)
+                .attr("height", barHeight).attr("rx", 2)
                 .attr("fill", function (item) { return colorScale(item.label || "Activity"); });
             bars.select(".activity-bar").selectAll("title").data(function (item) { return [item]; }).join("title")
                 .text(function (item) { return item.description || item.label || "Activity"; });
-            bars.select(".activity-label").attr("x", 5).attr("y", rowHeight * 0.38)
-                .attr("fill", "#17202a").attr("font-size", Math.max(10, Math.min(13, rowHeight * 0.42)))
+            bars.select(".activity-label").attr("x", 5).attr("y", Math.min(barHeight * 0.55, rowHeight * 0.5))
+                .attr("fill", "#17202a").attr("font-size", Math.max(8, Math.min(13, barHeight * 0.55)))
                 .text(function (item) { return item.description || item.label || ""; });
-            bars.select(".resize-start").attr("x", -2).attr("y", 0).attr("width", 5).attr("height", Math.max(8, rowHeight * 0.76));
+            bars.select(".resize-start").attr("x", -2).attr("y", 0).attr("width", 5).attr("height", barHeight);
             bars.select(".resize-finish").attr("x", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)) - 3; })
-                .attr("y", 0).attr("width", 5).attr("height", Math.max(8, rowHeight * 0.76));
+                .attr("y", 0).attr("width", 5).attr("height", barHeight);
 
             bars.call(d3.drag().on("start", function () { d3.select(this).raise().classed("is-dragging", true); })
                 .on("drag", function (event, item) {
@@ -205,7 +219,7 @@
                     item.finish = new Date(+xScale.invert(xScale(item.finish) + event.dx));
                     item._category = nearestCategory(yScale(item._row) + event.dy + rowHeight / 2);
                     item[settings.category] = item._category;
-                    d3.select(this).attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + event.dy + rowHeight * 0.12) + ")");
+                    d3.select(this).attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight / 2 - barHeight / 2) + ")");
                 }).on("end", function () { d3.select(this).classed("is-dragging", false); render(); }));
 
             bars.select(".resize-start").call(d3.drag()
@@ -315,6 +329,7 @@
         });
         setter("maxHeight", function () { return settings.maxHeight; }, function (value) { settings.maxHeight = Math.max(100, +value || 1500); });
         setter("rowHeight", function () { return settings.rowHeight; }, function (value) { settings.rowHeight = Math.max(12, +value || 28); });
+        setter("minBarHeight", function () { return settings.minBarHeight; }, function (value) { settings.minBarHeight = Math.max(4, +value || 8); });
         setter("leftMargin", function () { return settings.margin.left; }, function (value) { settings.margin.left = Math.max(0, +value || 0); });
         setter("rightMargin", function () { return settings.margin.right; }, function (value) { settings.margin.right = Math.max(0, +value || 0); });
         setter("topMargin", function () { return settings.margin.top; }, function (value) { settings.margin.top = Math.max(0, +value || 0); });
