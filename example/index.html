@@ -6,8 +6,9 @@
   <title>PegChart example</title>
   <style>
     body { font: 14px system-ui, sans-serif; margin: 24px; color: #24292f; }
-    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 0; }
     button { padding: 7px 12px; cursor: pointer; }
+    #myPlot { width: 100%; margin: 0; }
     .peg-chart { max-width: 100%; height: auto; overflow: visible; }
     .x-axis, .y-axis { font: 12px sans-serif; }
     .category-band { pointer-events: none; }
@@ -55,7 +56,7 @@
       }
 
       var chartData = saved || getRandomData();
-      var chart = pegChart().leftMargin(150).width(1100);
+      var chart = pegChart().leftMargin(150).width("responsive").topMargin(24);
 
       try {
         chart(document.getElementById("myPlot"), chartData);
