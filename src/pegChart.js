@@ -23,10 +23,10 @@
             colors: ["#EDBB99", "#73C6B6", "#85C1E9", "#95A5A6", "#F4D03F", "#D5DBDB", "#FEF9E7", "#EBDEF0", "#D2B4DE"],
             laneAccents: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9"]
         };
-        var host, svg, plot, baseXScale, xScale, yScale, colorScale, zoom;
-        var zoomTransform = d3.zoomIdentity;
+        var host, svg, plot, overlay, xScale, baseXScale, yScale, colorScale, zoom;
         var data = [], categories = [], lanes = [], plotHeight = 0, rowCount = 1, rowHeight = settings.rowHeight;
         var uniqueId = "peg-chart-" + Math.random().toString(36).slice(2, 10);
+        var clipId = uniqueId + "-clip";
 
         function date(value) {
             var parsed = value instanceof Date ? new Date(value.getTime()) : new Date(value);
@@ -35,8 +35,7 @@
 
         function normalize(items) {
             return (items || []).map(function (item, index) {
-                var start = date(item.start);
-                var finish = date(item.finish);
+                var start = date(item.start), finish = date(item.finish);
                 if (!start || !finish) throw new Error("Each activity needs valid start and finish dates.");
                 return Object.assign({}, item, {
                     start: start,
@@ -51,10 +50,10 @@
             categories = Array.from(new Set(data.map(function (item) { return item._category; }))).sort();
             lanes = [];
             categories.forEach(function (category) {
-                var categoryItems = data.filter(function (item) { return item._category === category; })
+                var items = data.filter(function (item) { return item._category === category; })
                     .sort(function (a, b) { return a.start - b.start || a.finish - b.finish; });
                 var ends = [];
-                categoryItems.forEach(function (item) {
+                items.forEach(function (item) {
                     var lane = ends.findIndex(function (end) { return end <= item.start; });
                     if (lane < 0) lane = ends.length;
                     ends[lane] = item.finish;
@@ -63,10 +62,7 @@
                 lanes.push({ category: category, count: Math.max(1, ends.length), firstRow: 0 });
             });
             var row = 0;
-            lanes.forEach(function (group) {
-                group.firstRow = row;
-                row += group.count;
-            });
+            lanes.forEach(function (group) { group.firstRow = row; row += group.count; });
             data.forEach(function (item) {
                 var group = lanes.find(function (entry) { return entry.category === item._category; });
                 item._row = group.firstRow + item._lane;
@@ -76,7 +72,7 @@
             rowHeight = plotHeight / rowCount;
         }
 
-        function domain() {
+        function dateDomain() {
             var starts = data.map(function (item) { return item.start; });
             var finishes = data.map(function (item) { return item.finish; });
             if (!starts.length) {
@@ -84,10 +80,7 @@
                 return [new Date(now.getFullYear(), now.getMonth() - 1, 1), new Date(now.getFullYear(), now.getMonth() + 2, 1)];
             }
             var min = d3.min(starts), max = d3.max(finishes);
-            if (+min === +max) {
-                min = new Date(+min - 86400000);
-                max = new Date(+max + 86400000);
-            }
+            if (+min === +max) { min = new Date(+min - 86400000); max = new Date(+max + 86400000); }
             var padding = Math.max(86400000, (max - min) * 0.025);
             return [new Date(+min - padding), new Date(+max + padding)];
         }
@@ -98,21 +91,37 @@
             return nearest ? nearest._category : settings.category;
         }
 
+        function updateZoomedTimeline(transform) {
+            if (!baseXScale) return;
+            xScale = transform.rescaleX(baseXScale);
+            plot.select(".x-axis").call(d3.axisBottom(xScale).ticks(8).tickFormat(d3.timeFormat("%b %Y")));
+            plot.select(".x-grid").call(d3.axisTop(xScale).ticks(8).tickSize(-plotHeight).tickFormat(""));
+            plot.selectAll("g.activity").attr("transform", function (item) {
+                return "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight * 0.12) + ")";
+            });
+            plot.selectAll(".activity-bar").attr("width", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)); });
+            plot.selectAll(".resize-finish").attr("x", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)) - 3; });
+            plot.select(".x-grid").selectAll(".tick line").attr("stroke", "#d8dee4").attr("stroke-dasharray", "2,3");
+        }
+
         function render() {
             if (!svg) return;
             allocateLanes();
             var innerWidth = Math.max(1, settings.width - settings.margin.left - settings.margin.right);
             var height = plotHeight + settings.margin.top + settings.margin.bottom;
             svg.attr("width", settings.width).attr("height", height);
-            baseXScale = d3.scaleTime().domain(domain()).range([0, innerWidth]);
-            xScale = zoomTransform.rescaleX(baseXScale);
-            yScale = d3.scaleLinear().domain([0, rowCount]).range([0, plotHeight]);
-            colorScale = d3.scaleOrdinal(settings.colors).domain(Array.from(new Set(data.map(function (item) { return item.label || "Activity"; }))));
             plot.attr("transform", "translate(" + settings.margin.left + "," + settings.margin.top + ")");
 
-            plot.select(".x-axis").attr("transform", "translate(0," + plotHeight + ")")
-                .call(d3.axisBottom(xScale).ticks(Math.max(2, Math.floor(innerWidth / 110))).tickFormat(d3.timeFormat("%b %Y")));
-            plot.select(".x-grid").call(d3.axisTop(xScale).ticks(Math.max(2, Math.floor(innerWidth / 110))).tickSize(-plotHeight).tickFormat(""));
+            var clipRect = svg.select("#" + clipId + " rect");
+            clipRect.attr("width", innerWidth).attr("height", plotHeight);
+            overlay.attr("width", innerWidth).attr("height", plotHeight);
+            zoom.extent([[0, 0], [innerWidth, plotHeight]]).translateExtent([[0, 0], [innerWidth, plotHeight]]);
+
+            baseXScale = d3.scaleTime().domain(dateDomain()).range([0, innerWidth]);
+            yScale = d3.scaleLinear().domain([0, rowCount]).range([0, plotHeight]);
+            colorScale = d3.scaleOrdinal(settings.colors).domain(Array.from(new Set(data.map(function (item) { return item.label || "Activity"; }))));
+            updateZoomedTimeline(d3.zoomTransform(overlay.node()));
+            plot.select(".x-axis").attr("transform", "translate(0," + plotHeight + ")");
             plot.select(".y-axis").call(d3.axisLeft(yScale).tickValues(lanes.map(function (group) { return group.firstRow + group.count / 2; }))
                 .tickFormat(function (value) {
                     var group = lanes.find(function (entry) { return value >= entry.firstRow && value <= entry.firstRow + entry.count; });
@@ -121,21 +130,19 @@
                 .attr("fill", "#17202a").style("font-size", "13px").style("font-weight", "700");
 
             var bandHost = plot.select(".category-bands");
-            var groups = bandHost.selectAll(".category-band").data(lanes, function (d) { return d.category; });
-            groups.exit().remove();
-            groups = groups.enter().append("rect").attr("class", "category-band").merge(groups)
+            var bands = bandHost.selectAll(".category-band").data(lanes, function (d) { return d.category; });
+            bands.exit().remove();
+            bands.enter().append("rect").attr("class", "category-band").merge(bands)
                 .attr("x", 0).attr("width", innerWidth)
                 .attr("y", function (d) { return yScale(d.firstRow); })
                 .attr("height", function (d) { return yScale(d.firstRow + d.count) - yScale(d.firstRow); })
                 .attr("fill", function (d, i) { return i % 2 ? "#e9eef3" : "#ffffff"; });
-
             var accents = bandHost.selectAll(".category-accent").data(lanes, function (d) { return d.category; });
             accents.exit().remove();
             accents.enter().append("rect").attr("class", "category-accent").merge(accents)
-                .attr("x", 0).attr("y", function (d) { return yScale(d.firstRow); }).attr("width", 5)
+                .attr("x", 0).attr("width", 5).attr("y", function (d) { return yScale(d.firstRow); })
                 .attr("height", function (d) { return yScale(d.firstRow + d.count) - yScale(d.firstRow); })
                 .attr("fill", function (d, i) { return settings.laneAccents[i % settings.laneAccents.length]; });
-
             var dividers = bandHost.selectAll(".category-divider").data(lanes.filter(function (d) { return d.firstRow > 0; }), function (d) { return d.category; });
             dividers.exit().remove();
             dividers.enter().append("line").attr("class", "category-divider").merge(dividers)
@@ -154,8 +161,8 @@
             bars.attr("transform", function (item) { return "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight * 0.12) + ")"; });
             bars.select(".activity-bar").attr("width", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)); })
                 .attr("height", Math.max(8, rowHeight * 0.76)).attr("rx", 2)
-                .attr("fill", function (item) { return colorScale(item.label || "Activity"); })
-                .selectAll("title").data(function (item) { return [item]; }).join("title")
+                .attr("fill", function (item) { return colorScale(item.label || "Activity"); });
+            bars.select(".activity-bar").selectAll("title").data(function (item) { return [item]; }).join("title")
                 .text(function (item) { return item.description || item.label || "Activity"; });
             bars.select(".activity-label").attr("x", 5).attr("y", rowHeight * 0.38)
                 .attr("fill", "#17202a").attr("font-size", Math.max(10, Math.min(13, rowHeight * 0.42)))
@@ -172,7 +179,6 @@
                     item[settings.category] = item._category;
                     d3.select(this).attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + event.dy + rowHeight * 0.12) + ")");
                 }).on("end", function () { d3.select(this).classed("is-dragging", false); render(); }));
-
             bars.select(".resize-start").call(d3.drag().on("drag", function (event, item) {
                 item.start = new Date(+xScale.invert(xScale(item.start) + event.dx));
                 if (item.start > item.finish) item.start = new Date(item.finish);
@@ -202,29 +208,16 @@
             data = normalize(items);
             host.innerHTML = "";
             svg = d3.select(host).append("svg").attr("class", "peg-chart").attr("role", "img").attr("aria-label", "Interactive project timeline");
+            svg.append("defs").append("clipPath").attr("id", clipId).append("rect");
             plot = svg.append("g").attr("class", "plot");
-            plot.append("g").attr("class", "x-grid");
-            plot.append("g").attr("class", "category-bands");
-            plot.append("g").attr("class", "activities");
+            plot.append("g").attr("class", "category-bands").attr("pointer-events", "none");
+            plot.append("g").attr("class", "x-grid").attr("clip-path", "url(#" + clipId + ")").attr("pointer-events", "none");
+            overlay = plot.append("rect").attr("class", "zoom-overlay").attr("fill", "transparent").style("pointer-events", "all");
+            plot.append("g").attr("class", "activities").attr("clip-path", "url(#" + clipId + ")");
             plot.append("g").attr("class", "x-axis");
             plot.append("g").attr("class", "y-axis");
-            plot.select(".category-bands").lower();
-            zoom = d3.zoom().scaleExtent([0.5, 32]).on("zoom", function (event) {
-                if (!baseXScale) return;
-                // Always derive the visible scale from the unchanged base scale.
-                // Rescaling the already-rescaled scale compounds each wheel event and can freeze the chart.
-                zoomTransform = event.transform;
-                xScale = zoomTransform.rescaleX(baseXScale);
-                plot.select(".x-axis").call(d3.axisBottom(xScale).ticks(8).tickFormat(d3.timeFormat("%b %Y")));
-                plot.selectAll("g.activity").attr("transform", function (item) {
-                    return "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight * 0.12) + ")";
-                });
-                plot.selectAll(".activity-bar").attr("width", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)); });
-                plot.selectAll(".resize-finish").attr("x", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)) - 3; });
-                plot.select(".x-grid").call(d3.axisTop(xScale).ticks(8).tickSize(-plotHeight).tickFormat(""));
-                plot.select(".x-grid").selectAll(".tick line").attr("stroke", "#d8dee4").attr("stroke-dasharray", "2,3");
-            });
-            svg.call(zoom);
+            zoom = d3.zoom().scaleExtent([0.5, 32]).on("zoom", function (event) { updateZoomedTimeline(event.transform); });
+            overlay.call(zoom);
 
             attachButton("savebtn", "Save to local storage", function () {
                 var serializable = data.map(function (item) {
