@@ -52,9 +52,6 @@
                 item._row = group.firstRow + item._lane;
             });
             rowCount = Math.max(1, row);
-
-            // Fit only the data lanes in the viewport. Limit row spacing as well as bar height
-            // so that dense charts can show more lanes without adding any empty ones.
             var configuredPlotMax = Math.max(settings.minBarHeight * rowCount,
                 settings.maxHeight - settings.margin.top - settings.margin.bottom);
             var hostTop = host ? Math.max(0, host.getBoundingClientRect().top) : 0;
@@ -173,14 +170,20 @@
             bars.select(".resize-start").attr("x", -2).attr("y", 0).attr("width", 5).attr("height", barHeight);
             bars.select(".resize-finish").attr("x", function (item) { return Math.max(2, xScale(item.finish) - xScale(item.start)) - 3; })
                 .attr("y", 0).attr("width", 5).attr("height", barHeight);
-            bars.call(d3.drag().on("start", function () { d3.select(this).raise().classed("is-dragging", true); })
-                .on("drag", function (event, item) {
-                    item.start = new Date(+xScale.invert(xScale(item.start) + event.dx));
-                    item.finish = new Date(+xScale.invert(xScale(item.finish) + event.dx));
-                    item._category = nearestCategory(yScale(item._row) + event.dy + rowHeight / 2);
-                    item[settings.category] = item._category;
-                    d3.select(this).attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + event.dy + rowHeight / 2 - barHeight / 2) + ")");
-                }).on("end", function () { d3.select(this).classed("is-dragging", false); render(); }));
+            // D3 drag event.dy is the incremental movement since the previous event.
+            // Accumulate it for the bar's current y-position to prevent vertical jitter.
+            var dragCenterY = 0;
+            bars.call(d3.drag().on("start", function (event, item) {
+                dragCenterY = yScale(item._row) + rowHeight / 2;
+                d3.select(this).raise().classed("is-dragging", true);
+            }).on("drag", function (event, item) {
+                item.start = new Date(+xScale.invert(xScale(item.start) + event.dx));
+                item.finish = new Date(+xScale.invert(xScale(item.finish) + event.dx));
+                dragCenterY += event.dy;
+                item._category = nearestCategory(dragCenterY);
+                item[settings.category] = item._category;
+                d3.select(this).attr("transform", "translate(" + xScale(item.start) + "," + (dragCenterY - barHeight / 2) + ")");
+            }).on("end", function () { d3.select(this).classed("is-dragging", false); render(); }));
             bars.select(".resize-start").call(d3.drag().container(function () { return overlay.node(); })
                 .on("drag", function (event, item) {
                     item.start = new Date(+xScale.invert(xScale(item.start) + event.dx));
