@@ -20,7 +20,8 @@
             rowHeight: 28,
             margin: { top: 28, right: 24, bottom: 42, left: 140 },
             category: "group",
-            colors: ["#EDBB99", "#73C6B6", "#85C1E9", "#95A5A6", "#F4D03F", "#D5DBDB", "#FEF9E7", "#EBDEF0", "#D2B4DE"]
+            colors: ["#EDBB99", "#73C6B6", "#85C1E9", "#95A5A6", "#F4D03F", "#D5DBDB", "#FEF9E7", "#EBDEF0", "#D2B4DE"],
+            laneAccents: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9"]
         };
         var host, svg, plot, xScale, yScale, colorScale, zoom, data = [], categories = [], lanes = [], plotHeight = 0;
         var uniqueId = "peg-chart-" + Math.random().toString(36).slice(2, 10);
@@ -123,15 +124,37 @@
             })).tickFormat(function (value) {
                 var group = lanes.find(function (entry) { return value >= entry.firstRow && value <= entry.firstRow + entry.count; });
                 return group ? group.category : "";
-            }).tickSize(0));
+            }).tickSize(0)).selectAll("text")
+                .attr("fill", "#17202a")
+                .style("font-size", "13px")
+                .style("font-weight", "700");
 
-            var groups = plot.selectAll(".category-band").data(lanes, function (d) { return d.category; });
+            var bandHost = plot.select(".category-bands");
+            var groups = bandHost.selectAll(".category-band").data(lanes, function (d) { return d.category; });
             groups.exit().remove();
             groups = groups.enter().append("rect").attr("class", "category-band").merge(groups)
                 .attr("x", 0).attr("width", innerWidth)
                 .attr("y", function (d) { return yScale(d.firstRow); })
                 .attr("height", function (d) { return yScale(d.count); })
                 .attr("fill", function (d, i) { return i % 2 ? "#e9eef3" : "#ffffff"; });
+
+            var accents = bandHost.selectAll(".category-accent").data(lanes, function (d) { return d.category; });
+            accents.exit().remove();
+            accents = accents.enter().append("rect").attr("class", "category-accent").merge(accents)
+                .attr("x", 0)
+                .attr("y", function (d) { return yScale(d.firstRow); })
+                .attr("width", 5)
+                .attr("height", function (d) { return yScale(d.count); })
+                .attr("fill", function (d, i) { return settings.laneAccents[i % settings.laneAccents.length]; });
+
+            var dividers = bandHost.selectAll(".category-divider").data(lanes.filter(function (d) { return d.firstRow > 0; }), function (d) { return d.category; });
+            dividers.exit().remove();
+            dividers = dividers.enter().append("line").attr("class", "category-divider").merge(dividers)
+                .attr("x1", 0).attr("x2", innerWidth)
+                .attr("y1", function (d) { return yScale(d.firstRow); })
+                .attr("y2", function (d) { return yScale(d.firstRow); })
+                .attr("stroke", "#b8c2cc")
+                .attr("stroke-width", 1);
 
             var bars = plot.selectAll("g.activity").data(data, function (d) { return d._id; });
             bars.exit().remove();
