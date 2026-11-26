@@ -103,8 +103,7 @@
         function updateZoomedTimeline(transform) {
             if (!baseXScale) return;
             xScale = transform.rescaleX(baseXScale);
-            var timeAxis = d3.axisBottom(xScale).ticks(8).tickFormat(d3.timeFormat("%b %Y"));
-            plot.select(".x-axis").call(timeAxis);
+            plot.select(".x-axis").call(d3.axisBottom(xScale).ticks(8).tickFormat(d3.timeFormat("%b %Y")));
             plot.select(".x-axis-top").call(d3.axisTop(xScale).ticks(8).tickFormat(d3.timeFormat("%b %Y")));
             plot.select(".x-grid").call(d3.axisTop(xScale).ticks(8).tickSize(-plotHeight).tickFormat(""));
             plot.select(".activities").selectAll("g.activity").attr("transform", function (item) {
@@ -117,6 +116,15 @@
                 return Math.max(2, xScale(item.finish) - xScale(item.start)) - 3;
             });
             plot.select(".x-grid").selectAll(".tick line").attr("stroke", "#d8dee4").attr("stroke-dasharray", "2,3");
+        }
+
+        function updateBarDuringResize(selection, item, resizeStart) {
+            var width = Math.max(2, xScale(item.finish) - xScale(item.start));
+            selection.select(".activity-bar").attr("width", width);
+            selection.select(".resize-finish").attr("x", width - 3);
+            if (resizeStart) {
+                selection.attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + rowHeight * 0.12) + ")");
+            }
         }
 
         function render() {
@@ -199,16 +207,21 @@
                     item[settings.category] = item._category;
                     d3.select(this).attr("transform", "translate(" + xScale(item.start) + "," + (yScale(item._row) + event.dy + rowHeight * 0.12) + ")");
                 }).on("end", function () { d3.select(this).classed("is-dragging", false); render(); }));
-            bars.select(".resize-start").call(d3.drag().on("drag", function (event, item) {
-                item.start = new Date(+xScale.invert(xScale(item.start) + event.dx));
-                if (item.start > item.finish) item.start = new Date(item.finish);
-                render();
-            }));
-            bars.select(".resize-finish").call(d3.drag().on("drag", function (event, item) {
-                item.finish = new Date(+xScale.invert(xScale(item.finish) + event.dx));
-                if (item.finish < item.start) item.finish = new Date(item.start);
-                render();
-            }));
+
+            bars.select(".resize-start").call(d3.drag()
+                .on("drag", function (event, item) {
+                    item.start = new Date(+xScale.invert(xScale(item.start) + event.dx));
+                    if (item.start > item.finish) item.start = new Date(item.finish);
+                    updateBarDuringResize(d3.select(this.parentNode), item, true);
+                })
+                .on("end", function () { render(); }));
+            bars.select(".resize-finish").call(d3.drag()
+                .on("drag", function (event, item) {
+                    item.finish = new Date(+xScale.invert(xScale(item.finish) + event.dx));
+                    if (item.finish < item.start) item.finish = new Date(item.start);
+                    updateBarDuringResize(d3.select(this.parentNode), item, false);
+                })
+                .on("end", function () { render(); }));
         }
 
         function attachButton(id, label, action) {
