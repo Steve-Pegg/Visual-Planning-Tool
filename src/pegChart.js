@@ -7,14 +7,14 @@
     "use strict";
     function timelines() {
         var settings = {
-            width: null, maxHeight: 1500, rowHeight: 28, minBarHeight: 8, maxBarHeight: 10.5,
+            width: null, maxHeight: 1500, rowHeight: 28, minBarHeight: 16, maxBarHeight: 21,
             margin: { top: 8, right: 24, bottom: 26, left: 140 }, category: "group",
             colors: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9", "#F0E442", "#333333"],
             laneAccents: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9"]
         };
         var host, svg, plot, overlay, baseXScale, xScale, yScale, colorScale, zoom;
         var resizeObserver, resizeTimer;
-        var data = [], lanes = [], plotHeight = 0, rowCount = 1, rowHeight = settings.rowHeight, barHeight = 10.5;
+        var data = [], lanes = [], plotHeight = 0, rowCount = 1, rowHeight = settings.rowHeight, barHeight = 21;
         var uniqueId = "peg-chart-" + Math.random().toString(36).slice(2, 10), clipId = uniqueId + "-clip";
 
         function date(value) {
@@ -258,8 +258,11 @@
         });
         setter("maxHeight", function () { return settings.maxHeight; }, function (value) { settings.maxHeight = Math.max(100, +value || 1500); });
         setter("rowHeight", function () { return settings.rowHeight; }, function (value) { settings.rowHeight = Math.max(12, +value || 28); });
-        setter("minBarHeight", function () { return settings.minBarHeight; }, function (value) { settings.minBarHeight = Math.max(4, +value || 8); });
-        setter("maxBarHeight", function () { return settings.maxBarHeight; }, function (value) { settings.maxBarHeight = Math.max(settings.minBarHeight, +value || 10.5); });
+        setter("minBarHeight", function () { return settings.minBarHeight; }, function (value) {
+            settings.minBarHeight = Math.max(4, +value || 16);
+            settings.maxBarHeight = Math.max(settings.maxBarHeight, settings.minBarHeight);
+        });
+        setter("maxBarHeight", function () { return settings.maxBarHeight; }, function (value) { settings.maxBarHeight = Math.max(settings.minBarHeight, +value || 21); });
         setter("leftMargin", function () { return settings.margin.left; }, function (value) { settings.margin.left = Math.max(0, +value || 0); });
         setter("rightMargin", function () { return settings.margin.right; }, function (value) { settings.margin.right = Math.max(0, +value || 0); });
         setter("topMargin", function () { return settings.margin.top; }, function (value) { settings.margin.top = Math.max(0, +value || 0); });
