@@ -30,10 +30,39 @@
   <script src="rndata.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
+      function isValidActivityData(value) {
+        if (!Array.isArray(value)) return false;
+
+        return value.every(function (item) {
+          if (!item || typeof item !== "object") return false;
+          if (!item.start || !item.finish) return false;
+
+          var start = item.start instanceof Date ? item.start : new Date(item.start);
+          var finish = item.finish instanceof Date ? item.finish : new Date(item.finish);
+
+          return !isNaN(start.getTime()) &&
+                 !isNaN(finish.getTime()) &&
+                 finish >= start;
+        });
+      }
+
       var saved = null;
-      try { saved = JSON.parse(localStorage.getItem("myData") || "null"); } catch (error) { /* use sample data */ }
+      try {
+        var parsed = JSON.parse(localStorage.getItem("myData") || "null");
+        if (isValidActivityData(parsed)) saved = parsed;
+      } catch (error) {
+        saved = null;
+      }
+
+      var chartData = saved || getRandomData();
       var chart = pegChart().leftMargin(150).width(1100);
-      chart(document.getElementById("myPlot"), saved || getRandomData());
+
+      try {
+        chart(document.getElementById("myPlot"), chartData);
+      } catch (error) {
+        localStorage.removeItem("myData");
+        chart(document.getElementById("myPlot"), getRandomData());
+      }
     });
   </script>
 </body>
