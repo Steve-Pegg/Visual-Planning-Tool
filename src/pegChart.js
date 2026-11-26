@@ -15,16 +15,17 @@
 
     function timelines() {
         var settings = {
-            width: 1000,
+            width: null,
             maxHeight: 1500,
             rowHeight: 28,
             margin: { top: 28, right: 24, bottom: 42, left: 140 },
             category: "group",
-            colors: ["#EDBB99", "#73C6B6", "#85C1E9", "#95A5A6", "#F4D03F", "#D5DBDB", "#FEF9E7", "#EBDEF0", "#D2B4DE"],
+            colors: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9", "#F0E442", "#333333"],
             laneAccents: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9"]
         };
-        var host, svg, plot, overlay, xScale, baseXScale, yScale, colorScale, zoom;
-        var data = [], categories = [], lanes = [], plotHeight = 0, rowCount = 1, rowHeight = settings.rowHeight;
+        var host, svg, plot, overlay, baseXScale, xScale, yScale, colorScale, zoom;
+        var resizeObserver, resizeTimer;
+        var data = [], lanes = [], plotHeight = 0, rowCount = 1, rowHeight = settings.rowHeight;
         var uniqueId = "peg-chart-" + Math.random().toString(36).slice(2, 10);
         var clipId = uniqueId + "-clip";
 
@@ -47,7 +48,7 @@
         }
 
         function allocateLanes() {
-            categories = Array.from(new Set(data.map(function (item) { return item._category; }))).sort();
+            var categories = Array.from(new Set(data.map(function (item) { return item._category; }))).sort();
             lanes = [];
             categories.forEach(function (category) {
                 var items = data.filter(function (item) { return item._category === category; })
@@ -85,6 +86,14 @@
             return [new Date(+min - padding), new Date(+max + padding)];
         }
 
+        function resolvedWidth() {
+            if (settings.width !== null) return Math.max(200, Math.floor(settings.width));
+            var hostWidth = host ? Math.floor(host.getBoundingClientRect().width) : 0;
+            if (!hostWidth && host && host.parentElement) hostWidth = Math.floor(host.parentElement.getBoundingClientRect().width);
+            if (!hostWidth) hostWidth = Math.floor(window.innerWidth || 1000);
+            return Math.max(200, hostWidth);
+        }
+
         function nearestCategory(y) {
             var row = Math.max(0, Math.min(Math.round(y / rowHeight - 0.5), rowCount - 1));
             var nearest = data.slice().sort(function (a, b) { return Math.abs(a._row - row) - Math.abs(b._row - row); })[0];
@@ -107,13 +116,13 @@
         function render() {
             if (!svg) return;
             allocateLanes();
-            var innerWidth = Math.max(1, settings.width - settings.margin.left - settings.margin.right);
+            var width = resolvedWidth();
+            var innerWidth = Math.max(1, width - settings.margin.left - settings.margin.right);
             var height = plotHeight + settings.margin.top + settings.margin.bottom;
-            svg.attr("width", settings.width).attr("height", height);
+            svg.attr("width", width).attr("height", height).attr("viewBox", "0 0 " + width + " " + height);
             plot.attr("transform", "translate(" + settings.margin.left + "," + settings.margin.top + ")");
 
-            var clipRect = svg.select("#" + clipId + " rect");
-            clipRect.attr("width", innerWidth).attr("height", plotHeight);
+            svg.select("#" + clipId + " rect").attr("width", innerWidth).attr("height", plotHeight);
             overlay.attr("width", innerWidth).attr("height", plotHeight);
             zoom.extent([[0, 0], [innerWidth, plotHeight]]).translateExtent([[0, 0], [innerWidth, plotHeight]]);
 
@@ -121,6 +130,7 @@
             yScale = d3.scaleLinear().domain([0, rowCount]).range([0, plotHeight]);
             colorScale = d3.scaleOrdinal(settings.colors).domain(Array.from(new Set(data.map(function (item) { return item.label || "Activity"; }))));
             updateZoomedTimeline(d3.zoomTransform(overlay.node()));
+
             plot.select(".x-axis").attr("transform", "translate(0," + plotHeight + ")");
             plot.select(".y-axis").call(d3.axisLeft(yScale).tickValues(lanes.map(function (group) { return group.firstRow + group.count / 2; }))
                 .tickFormat(function (value) {
@@ -137,12 +147,14 @@
                 .attr("y", function (d) { return yScale(d.firstRow); })
                 .attr("height", function (d) { return yScale(d.firstRow + d.count) - yScale(d.firstRow); })
                 .attr("fill", function (d, i) { return i % 2 ? "#e9eef3" : "#ffffff"; });
+
             var accents = bandHost.selectAll(".category-accent").data(lanes, function (d) { return d.category; });
             accents.exit().remove();
             accents.enter().append("rect").attr("class", "category-accent").merge(accents)
                 .attr("x", 0).attr("width", 5).attr("y", function (d) { return yScale(d.firstRow); })
                 .attr("height", function (d) { return yScale(d.firstRow + d.count) - yScale(d.firstRow); })
                 .attr("fill", function (d, i) { return settings.laneAccents[i % settings.laneAccents.length]; });
+
             var dividers = bandHost.selectAll(".category-divider").data(lanes.filter(function (d) { return d.firstRow > 0; }), function (d) { return d.category; });
             dividers.exit().remove();
             dividers.enter().append("line").attr("class", "category-divider").merge(dividers)
@@ -189,7 +201,6 @@
                 if (item.finish < item.start) item.finish = new Date(item.start);
                 render();
             }));
-            plot.select(".x-grid").selectAll(".tick line").attr("stroke", "#d8dee4").attr("stroke-dasharray", "2,3");
         }
 
         function attachButton(id, label, action) {
@@ -207,7 +218,7 @@
             if (!host) throw new Error("PegChart target element was not found.");
             data = normalize(items);
             host.innerHTML = "";
-            svg = d3.select(host).append("svg").attr("class", "peg-chart").attr("role", "img").attr("aria-label", "Interactive project timeline");
+            svg = d3.select(host).append("svg").attr("class", "peg-chart").attr("role", "img").attr("aria-label", "Interactive project timeline").style("display", "block").style("width", "100%").style("max-width", "100%");
             svg.append("defs").append("clipPath").attr("id", clipId).append("rect");
             plot = svg.append("g").attr("class", "plot");
             plot.append("g").attr("class", "category-bands").attr("pointer-events", "none");
@@ -252,7 +263,19 @@
                 data = data.filter(function (item) { return item._category !== "|Delete"; });
                 render();
             });
+
             render();
+            if (typeof ResizeObserver !== "undefined") {
+                resizeObserver = new ResizeObserver(function () {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(function () {
+                        if (settings.width === null) render();
+                    }, 50);
+                });
+                resizeObserver.observe(host);
+            } else {
+                window.addEventListener("resize", function () { if (settings.width === null) render(); });
+            }
             return chart;
         }
 
@@ -264,7 +287,10 @@
                 return chart;
             };
         }
-        setter("width", function () { return settings.width; }, function (value) { settings.width = Math.max(200, +value || 1000); });
+        setter("width", function () { return settings.width; }, function (value) {
+            if (value === null || value === undefined || value === "auto" || value === "responsive") settings.width = null;
+            else settings.width = Math.max(200, +value || 1000);
+        });
         setter("maxHeight", function () { return settings.maxHeight; }, function (value) { settings.maxHeight = Math.max(100, +value || 1500); });
         setter("rowHeight", function () { return settings.rowHeight; }, function (value) { settings.rowHeight = Math.max(12, +value || 28); });
         setter("leftMargin", function () { return settings.margin.left; }, function (value) { settings.margin.left = Math.max(0, +value || 0); });
