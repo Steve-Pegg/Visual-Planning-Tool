@@ -7,14 +7,14 @@
     "use strict";
     function timelines() {
         var settings = {
-            width: null, maxHeight: 1500, rowHeight: 28, minBarHeight: 8,
+            width: null, maxHeight: 1500, rowHeight: 28, minBarHeight: 8, maxBarHeight: 10.5,
             margin: { top: 8, right: 24, bottom: 26, left: 140 }, category: "group",
             colors: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9", "#F0E442", "#333333"],
             laneAccents: ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9"]
         };
         var host, svg, plot, overlay, baseXScale, xScale, yScale, colorScale, zoom;
         var resizeObserver, resizeTimer;
-        var data = [], lanes = [], plotHeight = 0, rowCount = 1, rowHeight = settings.rowHeight, barHeight = 20;
+        var data = [], lanes = [], plotHeight = 0, rowCount = 1, rowHeight = settings.rowHeight, barHeight = 10.5;
         var uniqueId = "peg-chart-" + Math.random().toString(36).slice(2, 10), clipId = uniqueId + "-clip";
 
         function date(value) {
@@ -53,8 +53,8 @@
             });
             rowCount = Math.max(1, row);
 
-            // Use only the lanes in the data, compressing their row spacing to fit the visible viewport.
-            // Subtract the chart's actual position and axis margins, without arbitrary extra padding.
+            // Fit only the data lanes in the viewport. Limit row spacing as well as bar height
+            // so that dense charts can show more lanes without adding any empty ones.
             var configuredPlotMax = Math.max(settings.minBarHeight * rowCount,
                 settings.maxHeight - settings.margin.top - settings.margin.bottom);
             var hostTop = host ? Math.max(0, host.getBoundingClientRect().top) : 0;
@@ -63,9 +63,11 @@
                 : configuredPlotMax;
             var availablePlotHeight = Math.max(settings.minBarHeight * rowCount,
                 Math.min(configuredPlotMax, viewportPlotSpace));
-            plotHeight = Math.min(rowCount * settings.rowHeight, availablePlotHeight);
+            var maxRowHeight = settings.maxBarHeight / 0.76;
+            var preferredRowHeight = Math.min(settings.rowHeight, maxRowHeight);
+            plotHeight = Math.min(rowCount * preferredRowHeight, availablePlotHeight);
             rowHeight = plotHeight / rowCount;
-            barHeight = Math.max(settings.minBarHeight, rowHeight * 0.76);
+            barHeight = Math.min(settings.maxBarHeight, Math.max(settings.minBarHeight, rowHeight * 0.76));
         }
         function dateDomain() {
             var starts = data.map(function (item) { return item.start; }), finishes = data.map(function (item) { return item.finish; });
@@ -257,6 +259,7 @@
         setter("maxHeight", function () { return settings.maxHeight; }, function (value) { settings.maxHeight = Math.max(100, +value || 1500); });
         setter("rowHeight", function () { return settings.rowHeight; }, function (value) { settings.rowHeight = Math.max(12, +value || 28); });
         setter("minBarHeight", function () { return settings.minBarHeight; }, function (value) { settings.minBarHeight = Math.max(4, +value || 8); });
+        setter("maxBarHeight", function () { return settings.maxBarHeight; }, function (value) { settings.maxBarHeight = Math.max(settings.minBarHeight, +value || 10.5); });
         setter("leftMargin", function () { return settings.margin.left; }, function (value) { settings.margin.left = Math.max(0, +value || 0); });
         setter("rightMargin", function () { return settings.margin.right; }, function (value) { settings.margin.right = Math.max(0, +value || 0); });
         setter("topMargin", function () { return settings.margin.top; }, function (value) { settings.margin.top = Math.max(0, +value || 0); });
