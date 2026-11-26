@@ -209,6 +209,7 @@
                 }).on("end", function () { d3.select(this).classed("is-dragging", false); render(); }));
 
             bars.select(".resize-start").call(d3.drag()
+                .container(function () { return overlay.node(); })
                 .on("drag", function (event, item) {
                     item.start = new Date(+xScale.invert(xScale(item.start) + event.dx));
                     if (item.start > item.finish) item.start = new Date(item.finish);
@@ -216,6 +217,7 @@
                 })
                 .on("end", function () { render(); }));
             bars.select(".resize-finish").call(d3.drag()
+                .container(function () { return overlay.node(); })
                 .on("drag", function (event, item) {
                     item.finish = new Date(+xScale.invert(xScale(item.finish) + event.dx));
                     if (item.finish < item.start) item.finish = new Date(item.start);
